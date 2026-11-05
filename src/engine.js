@@ -353,6 +353,43 @@ export class WorkoutEngine {
     this.emit('phaseChange', this.state, null);
   }
 
+  serializeSession() {
+    if (this.state === WorkoutPhase.IDLE || this.state === WorkoutPhase.FINISHED) {
+      return null;
+    }
+    return {
+      sequence: this.sequence,
+      state: this.state,
+      currentIntervalIndex: this.currentIntervalIndex,
+      currentIntervalRemaining: this.currentIntervalRemaining,
+      currentIntervalDuration: this.currentIntervalDuration,
+      roundIndex: this.roundIndex,
+      stretchIndex: this.stretchIndex,
+      isPaused: this.isPaused,
+    };
+  }
+
+  restoreSession(saved) {
+    if (!saved) return;
+    if (this.timerId) {
+      clearInterval(this.timerId);
+      this.timerId = null;
+    }
+
+    this.sequence = saved.sequence;
+    this.intervals = this.buildSchedule();
+    this.currentIntervalIndex = saved.currentIntervalIndex >= 0 ? saved.currentIntervalIndex : 0;
+    this.state = saved.state || (this.currentInterval ? this.currentInterval.phase : WorkoutPhase.IDLE);
+    this.currentIntervalRemaining = saved.currentIntervalRemaining;
+    this.currentIntervalDuration =
+      saved.currentIntervalDuration || (this.currentInterval ? this.currentInterval.duration : 0);
+    this.isPaused = true;
+    this.leadInSeconds = 0;
+
+    this.emit('phaseChange', this.state, this.currentInterval);
+    this.emit('pause');
+  }
+
   reset() {
     if (this.timerId) {
       clearInterval(this.timerId);
