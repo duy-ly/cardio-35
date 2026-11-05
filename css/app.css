@@ -381,3 +381,334 @@ html, body {
     display: flex;
   }
 }
+
+
+/* ==========================================================================
+   Exercise Animation Rig & Movement Keyframes (All 19 movements)
+   ========================================================================== */
+
+:root {
+  --slow: 1;
+  --jj: calc(1s * var(--slow));   --bk: calc(.8s * var(--slow));  --sj: calc(1.6s * var(--slow)); --hk: calc(.64s * var(--slow));
+  --sk: calc(2.4s * var(--slow)); --rl: calc(3s * var(--slow));   --jr: calc(.5s * var(--slow));  --kc: calc(2s * var(--slow));
+  --nk: calc(5s * var(--slow));   --co: calc(5s * var(--slow));   --oss: calc(3.2s * var(--slow)); --qs: calc(5s * var(--slow));
+  --cs: calc(5s * var(--slow));   --hf: calc(5s * var(--slow));   --hs: calc(5s * var(--slow));   --bf: calc(4s * var(--slow));
+  --fg: calc(5s * var(--slow));   --tw: calc(5s * var(--slow));   --cp: calc(5s * var(--slow));
+}
+
+.fig { overflow: visible; display: block; }
+.fig .shadow { transform-box: fill-box; transform-origin: center; }
+.fig .head { transform-origin: 100px 62px; }
+.side .leg-r, .side .arm-r { opacity: .5; }
+.mirror { transform: scaleX(-1); }
+
+/* Shared floor shadow for hops: the shadow shrinks while the body is in the air. */
+@keyframes hopShadow {
+  0%, 100% { transform: scaleX(1); opacity: .2; }
+  50% { transform: scaleX(.75); opacity: .12; }
+}
+
+/* ---------- Cardio pool (8 moves) ---------- */
+
+/* 1 · Jumping Jacks (front): 1 rep per second, arms from the sides to overhead, legs open about 22°,
+   the body lifts about 14px on each jump, and the floor shadow shrinks in the air. */
+.jj .arm-l { animation: jjArmL var(--jj) ease-in-out infinite; }
+.jj .arm-r { animation: jjArmR var(--jj) ease-in-out infinite; }
+.jj .leg-l { animation: jjLegL var(--jj) ease-in-out infinite; }
+.jj .leg-r { animation: jjLegR var(--jj) ease-in-out infinite; }
+.jj .body  { animation: jjBody var(--jj) ease-in-out infinite; }
+.jj .shadow { animation: jjShadow var(--jj) ease-in-out infinite; }
+@keyframes jjArmL { 0%,100% { transform: rotate(14deg); } 50% { transform: rotate(166deg); } }
+@keyframes jjArmR { 0%,100% { transform: rotate(-14deg); } 50% { transform: rotate(-166deg); } }
+@keyframes jjLegL { 0%,100% { transform: rotate(3deg); } 50% { transform: rotate(22deg); } }
+@keyframes jjLegR { 0%,100% { transform: rotate(-3deg); } 50% { transform: rotate(-22deg); } }
+@keyframes jjBody { 0%,100% { transform: translateY(0); } 25%,75% { transform: translateY(-14px); } 50% { transform: translateY(6px); } }
+@keyframes jjShadow { 0%,50%,100% { transform: scaleX(1); opacity: .2; } 25%,75% { transform: scaleX(.7); opacity: .1; } }
+
+/* 2 · Butt Kicks (side): each leg kicks once per 0.8 s; the far side runs half a cycle behind. */
+.bk .upper { transform: rotate(5deg); }
+.bk .fore-l, .bk .fore-r { transform: rotate(-90deg); }
+.bk .leg-l  { animation: bkThigh var(--bk) ease-in-out infinite; }
+.bk .shin-l { animation: bkShin  var(--bk) ease-in-out infinite; }
+.bk .arm-l  { animation: bkArm   var(--bk) ease-in-out infinite; }
+.bk .leg-r  { animation: bkThigh var(--bk) ease-in-out infinite calc(var(--bk) / -2); }
+.bk .shin-r { animation: bkShin  var(--bk) ease-in-out infinite calc(var(--bk) / -2); }
+.bk .arm-r  { animation: bkArm   var(--bk) ease-in-out infinite calc(var(--bk) / -2); }
+.bk .body   { animation: bkBody   calc(var(--bk) / 2) ease-in-out infinite; }
+.bk .shadow { animation: bkShadow calc(var(--bk) / 2) ease-in-out infinite; }
+@keyframes bkThigh { 0%,50%,100% { transform: rotate(-10deg); } 22%,28% { transform: rotate(2deg); } }
+@keyframes bkShin  { 0%,50%,100% { transform: rotate(20deg); } 22%,28% { transform: rotate(155deg); } }
+@keyframes bkArm   { 0%,100% { transform: rotate(-5deg); } 25% { transform: rotate(-45deg); } 75% { transform: rotate(35deg); } }
+@keyframes bkBody   { 0%,100% { transform: translateY(-6px); } 50% { transform: translateY(2px); } }
+@keyframes bkShadow { 0%,100% { transform: scaleX(.8); opacity: .12; } 50% { transform: scaleX(1); opacity: .2; } }
+
+/* 3 · Squat Jumps (side): squat to about parallel with the hips back and the arms back, jump straight up with the arms
+   swinging overhead, and land soft back into the squat. 1 rep per 1.6 s. The feet stay together, so the far leg hides behind. */
+.sj .body   { animation: sjBody   var(--sj) ease-in-out infinite; }
+.sj .shadow { animation: sjShadow var(--sj) ease-in-out infinite; }
+.sj .upper  { animation: sjUpper  var(--sj) ease-in-out infinite; }
+.sj .leg-l, .sj .leg-r   { animation: sjThigh var(--sj) ease-in-out infinite; }
+.sj .shin-l, .sj .shin-r { animation: sjShin  var(--sj) ease-in-out infinite; }
+.sj .arm-l, .sj .arm-r   { animation: sjArm   var(--sj) ease-in-out infinite; }
+@keyframes sjBody   { 0%,84%,100% { transform: translate(-14px, 44px); } 15%,71% { transform: translate(-8px, 18px); } 30% { transform: translate(0, -4px); } 45% { transform: translate(0, -30px); } 60% { transform: translate(0, 0); } }
+@keyframes sjThigh  { 0%,84%,100% { transform: rotate(-79deg); } 15%,71% { transform: rotate(-44.6deg); } 30%,60% { transform: rotate(0); } 45% { transform: rotate(4deg); } }
+@keyframes sjShin   { 0%,84%,100% { transform: rotate(119.4deg); } 15%,71% { transform: rotate(75.4deg); } 30%,60% { transform: rotate(0); } 45% { transform: rotate(12deg); } }
+@keyframes sjUpper  { 0%,84%,100% { transform: rotate(38deg); } 15% { transform: rotate(20deg); } 30% { transform: rotate(4deg); } 45% { transform: rotate(2deg); } 60% { transform: rotate(8deg); } 71% { transform: rotate(24deg); } }
+@keyframes sjArm    { 0%,84%,100% { transform: rotate(25deg); } 15% { transform: rotate(-60deg); } 30% { transform: rotate(-155deg); } 45% { transform: rotate(-172deg); } 60% { transform: rotate(-115deg); } 71% { transform: rotate(-30deg); } }
+@keyframes sjShadow { 0%,15%,60%,71%,84%,100% { transform: scaleX(1); opacity: .2; } 30% { transform: scaleX(.95); opacity: .18; } 45% { transform: scaleX(.6); opacity: .1; } }
+
+/* 4 · High Knees (side): run in place with each knee driving to hip height, about 3 steps a second (each leg once per 0.64 s).
+   The arms pump with 90° elbows, opposite to the legs, and the body has a short flight at each foot switch. */
+.hk .fore-l, .hk .fore-r { transform: rotate(-90deg); }
+.hk .leg-l  { animation: hkThigh var(--hk) ease-in-out infinite; }
+.hk .shin-l { animation: hkShin  var(--hk) ease-in-out infinite; }
+.hk .arm-l  { animation: hkArm   var(--hk) ease-in-out infinite; }
+.hk .leg-r  { animation: hkThigh var(--hk) ease-in-out infinite calc(var(--hk) / -2); }
+.hk .shin-r { animation: hkShin  var(--hk) ease-in-out infinite calc(var(--hk) / -2); }
+.hk .arm-r  { animation: hkArm   var(--hk) ease-in-out infinite calc(var(--hk) / -2); }
+.hk .body   { animation: bkBody   calc(var(--hk) / 2) ease-in-out infinite; }
+.hk .shadow { animation: bkShadow calc(var(--hk) / 2) ease-in-out infinite; }
+@keyframes hkThigh { 0%,50%,100% { transform: rotate(-8deg); } 22%,28% { transform: rotate(-92deg); } }
+@keyframes hkShin  { 0%,50%,100% { transform: rotate(16deg); } 22%,28% { transform: rotate(100deg); } }
+@keyframes hkArm   { 0%,100% { transform: rotate(-5deg); } 25% { transform: rotate(40deg); } 75% { transform: rotate(-55deg); } }
+
+/* 5 · Skater Step & Floor Touch (front): a wide step to one side, the trailing leg sweeps behind into a curtsy (50% opacity
+   while behind), the hips hinge, and the opposite hand touches the mat beside the front foot while the other arm swings up.
+   No jump. One touch per side every 2.4 s. A hinge toward the viewer shortens the torso: the .chest group slides down the spine. */
+.sk .body   { animation: skBody   var(--sk) ease-in-out infinite; }
+.sk .shadow { animation: skShadow var(--sk) ease-in-out infinite; }
+.sk .upper  { animation: skUpper  var(--sk) ease-in-out infinite; }
+.sk .chest  { animation: skChest  var(--sk) ease-in-out infinite; }
+.sk .leg-l  { animation: skLegL   var(--sk) ease-in-out infinite; }
+.sk .shin-l { animation: skShinL  var(--sk) ease-in-out infinite; }
+.sk .leg-r  { animation: skLegR   var(--sk) ease-in-out infinite; }
+.sk .shin-r { animation: skShinR  var(--sk) ease-in-out infinite; }
+.sk .arm-l  { animation: skArmL   var(--sk) ease-in-out infinite; }
+.sk .arm-r  { animation: skArmR   var(--sk) ease-in-out infinite; }
+@keyframes skBody   { 0%,50%,100% { transform: translate(0, 0); } 25% { transform: translate(28px, 38px); } 75% { transform: translate(-28px, 38px); } }
+@keyframes skShadow { 0%,50%,100% { transform: translateX(0); } 25% { transform: translateX(40px) scaleX(1.1); } 75% { transform: translateX(-40px) scaleX(1.1); } }
+@keyframes skUpper  { 0%,50%,100% { transform: rotate(0); } 25% { transform: rotate(-20deg); } 75% { transform: rotate(20deg); } }
+@keyframes skChest  { 0%,50%,100% { transform: translateY(0); } 25%,75% { transform: translateY(30px); } }
+@keyframes skLegL   { 0%,50%,100% { transform: rotate(3deg); opacity: 1; } 25% { transform: rotate(-2.8deg); opacity: .5; } 75% { transform: rotate(72deg); opacity: 1; } }
+@keyframes skShinL  { 0%,50%,100% { transform: rotate(0); } 25% { transform: rotate(-84.4deg); } 75% { transform: rotate(-110.2deg); } }
+@keyframes skLegR   { 0%,50%,100% { transform: rotate(-3deg); opacity: 1; } 25% { transform: rotate(-72deg); opacity: 1; } 75% { transform: rotate(2.8deg); opacity: .5; } }
+@keyframes skShinR  { 0%,50%,100% { transform: rotate(0); } 25% { transform: rotate(110.2deg); } 75% { transform: rotate(84.4deg); } }
+@keyframes skArmL   { 0%,50%,100% { transform: rotate(8deg); } 25% { transform: rotate(24.3deg); } 75% { transform: rotate(115deg); } }
+@keyframes skArmR   { 0%,50%,100% { transform: rotate(-8deg); } 25% { transform: rotate(-115deg); } 75% { transform: rotate(-24.3deg); } }
+
+/* 6 · Reverse Lunge & Knee Drive (side): step one leg back into a lunge (back knee just above the mat), then drive the same
+   knee up to hip height as you stand. Alternate legs, no jump. 1 rep per 1.5 s, so each leg steps back once per 3 s.
+   The front foot stays planted, so the hips travel back and down into the lunge. */
+.rl .fore-l, .rl .fore-r { transform: rotate(-90deg); }
+.rl .body   { animation: rlBody   calc(var(--rl) / 2) ease-in-out infinite; }
+.rl .shadow { animation: rlShadow calc(var(--rl) / 2) ease-in-out infinite; }
+.rl .upper  { animation: rlUpper  calc(var(--rl) / 2) ease-in-out infinite; }
+.rl .leg-l  { animation: rlThigh var(--rl) ease-in-out infinite; }
+.rl .shin-l { animation: rlShin  var(--rl) ease-in-out infinite; }
+.rl .arm-l  { animation: rlArm   var(--rl) ease-in-out infinite; }
+.rl .leg-r  { animation: rlThigh var(--rl) ease-in-out infinite calc(var(--rl) / -2); }
+.rl .shin-r { animation: rlShin  var(--rl) ease-in-out infinite calc(var(--rl) / -2); }
+.rl .arm-r  { animation: rlArm   var(--rl) ease-in-out infinite calc(var(--rl) / -2); }
+@keyframes rlBody   { 0%,100% { transform: translate(20px, 0); } 20% { transform: translate(0, 10px); } 45%,55% { transform: translate(-20px, 28px); } 80% { transform: translate(20px, -3px); } }
+@keyframes rlShadow { 0%,80%,100% { transform: translateX(20px); } 45%,55% { transform: translateX(-27px) scaleX(1.5); } }
+@keyframes rlUpper  { 0%,100% { transform: rotate(0); } 45%,55% { transform: rotate(8deg); } 80% { transform: rotate(-3deg); } }
+@keyframes rlThigh  { 0%,50%,90%,100% { transform: rotate(0); } 10% { transform: rotate(25deg); } 22.5%,27.5% { transform: rotate(21.8deg); } 40% { transform: rotate(-95deg); } 60% { transform: rotate(-39.3deg); } 72.5%,77.5% { transform: rotate(-70.5deg); } }
+@keyframes rlShin   { 0%,50%,90%,100% { transform: rotate(0); } 10% { transform: rotate(40deg); } 22.5%,27.5% { transform: rotate(44.3deg); } 40% { transform: rotate(100deg); } 60% { transform: rotate(48.3deg); } 72.5%,77.5% { transform: rotate(70deg); } }
+@keyframes rlArm    { 0%,50%,100% { transform: rotate(-5deg); } 22.5%,27.5% { transform: rotate(-45deg); } 40% { transform: rotate(35deg); } 72.5%,77.5% { transform: rotate(30deg); } 90% { transform: rotate(-55deg); } }
+
+/* 7 · Jump Rope (front): small quick hops on the balls of the feet with the feet together, 2 hops per second. The elbows
+   stay by the sides and each hand circles beside the hip once per hop, as if turning a rope (the forearm runs a quarter
+   cycle behind the upper arm, so the hand traces a small loop). The body lifts about 9px on each hop, and the floor shadow
+   shrinks in the air, as in Jumping Jacks. */
+.jr .leg-l  { transform: rotate(2deg); }
+.jr .leg-r  { transform: rotate(-2deg); }
+.jr .body   { animation: jrBody    var(--jr) ease-in-out infinite; }
+.jr .shadow { animation: hopShadow var(--jr) ease-in-out infinite; }
+.jr .arm-l  { animation: jrArmL  var(--jr) ease-in-out infinite; }
+.jr .fore-l { animation: jrForeL var(--jr) ease-in-out infinite calc(var(--jr) / -4); }
+.jr .arm-r  { animation: jrArmR  var(--jr) ease-in-out infinite; }
+.jr .fore-r { animation: jrForeR var(--jr) ease-in-out infinite calc(var(--jr) / -4); }
+@keyframes jrBody  { 0%,100% { transform: translateY(1px); } 50% { transform: translateY(-9px); } }
+@keyframes jrArmL  { 0%,100% { transform: rotate(17deg); } 50% { transform: rotate(11deg); } }
+@keyframes jrForeL { 0%,100% { transform: rotate(28deg); } 50% { transform: rotate(50deg); } }
+@keyframes jrArmR  { 0%,100% { transform: rotate(-17deg); } 50% { transform: rotate(-11deg); } }
+@keyframes jrForeR { 0%,100% { transform: rotate(-28deg); } 50% { transform: rotate(-50deg); } }
+
+/* 8 · Standing Cross-Body Knee Crunch (front): hands behind the head with the elbows wide. One knee drives up and across
+   the body while the torso side-crunches toward it and the opposite elbow comes down to meet it. Alternate sides, no jump.
+   One crunch per side every 2 s. The crunch shortens the torso: the .chest group slides down the spine. */
+.kc .upper  { animation: kcUpper var(--kc) ease-in-out infinite; }
+.kc .chest  { animation: kcChest var(--kc) ease-in-out infinite; }
+.kc .leg-l  { animation: kcLegL  var(--kc) ease-in-out infinite; }
+.kc .shin-l { animation: kcShinL var(--kc) ease-in-out infinite; }
+.kc .leg-r  { animation: kcLegR  var(--kc) ease-in-out infinite; }
+.kc .shin-r { animation: kcShinR var(--kc) ease-in-out infinite; }
+.kc .arm-l  { animation: kcArmL  var(--kc) ease-in-out infinite; }
+.kc .fore-l { animation: kcForeL var(--kc) ease-in-out infinite; }
+.kc .arm-r  { animation: kcArmR  var(--kc) ease-in-out infinite; }
+.kc .fore-r { animation: kcForeR var(--kc) ease-in-out infinite; }
+@keyframes kcUpper { 0%,50%,100% { transform: rotate(0); } 25% { transform: rotate(18deg); } 75% { transform: rotate(-18deg); } }
+@keyframes kcChest { 0%,50%,100% { transform: translateY(0); } 25%,75% { transform: translateY(18px); } }
+@keyframes kcLegL  { 0%,50%,100% { transform: rotate(3deg); } 25% { transform: rotate(-118deg); } 75% { transform: rotate(2deg); } }
+@keyframes kcShinL { 0%,50%,75%,100% { transform: rotate(0); } 25% { transform: rotate(133deg); } }
+@keyframes kcLegR  { 0%,50%,100% { transform: rotate(-3deg); } 25% { transform: rotate(-2deg); } 75% { transform: rotate(118deg); } }
+@keyframes kcShinR { 0%,25%,50%,100% { transform: rotate(0); } 75% { transform: rotate(-133deg); } }
+@keyframes kcArmL  { 0%,25%,50%,100% { transform: rotate(120deg); } 75% { transform: rotate(85deg); } }
+@keyframes kcForeL { 0%,25%,50%,100% { transform: rotate(120deg); } 75% { transform: rotate(130deg); } }
+@keyframes kcArmR  { 0%,50%,75%,100% { transform: rotate(-120deg); } 25% { transform: rotate(-85deg); } }
+@keyframes kcForeR { 0%,50%,75%,100% { transform: rotate(-120deg); } 25% { transform: rotate(-130deg); } }
+
+/* ---------- Cooldown stretches (11, in order): slow breathing motion, each loop eases back and forth. ---------- */
+
+/* 1 · Neck Side Stretch (front, both sides): stand tall and tilt one ear toward the shoulder. The hand of that side rests
+   lightly on the head, and the other arm hangs down. On each breath the tilt deepens a little and the hand follows. */
+.nk .leg-l  { transform: rotate(4deg); }
+.nk .leg-r  { transform: rotate(-4deg); }
+.nk .head   { animation: nkHead  var(--nk) ease-in-out infinite alternate; }
+.nk .arm-l  { animation: nkArmL  var(--nk) ease-in-out infinite alternate; }
+.nk .fore-l { animation: nkForeL var(--nk) ease-in-out infinite alternate; }
+.nk .arm-r  { animation: nkArmR  var(--nk) ease-in-out infinite alternate; }
+@keyframes nkHead  { 0% { transform: rotate(-20deg); } 100% { transform: rotate(-30deg); } }
+@keyframes nkArmL  { 0% { transform: rotate(132deg); } 100% { transform: rotate(138deg); } }
+@keyframes nkForeL { 0% { transform: rotate(82deg); } 100% { transform: rotate(84deg); } }
+@keyframes nkArmR  { 0% { transform: rotate(-5deg); } 100% { transform: rotate(-3deg); } }
+
+/* 2 · Standing Chest & Shoulder Opener (front): arms out in a goal-post shape, elbows at 90°; on each breath the elbows lift
+   and the forearms open back. */
+.co .leg-l { transform: rotate(6deg); }
+.co .leg-r { transform: rotate(-6deg); }
+.co .arm-l  { animation: coArmL  var(--co) ease-in-out infinite alternate; }
+.co .fore-l { animation: coForeL var(--co) ease-in-out infinite alternate; }
+.co .arm-r  { animation: coArmR  var(--co) ease-in-out infinite alternate; }
+.co .fore-r { animation: coForeR var(--co) ease-in-out infinite alternate; }
+.co .body   { animation: coBody  var(--co) ease-in-out infinite alternate; }
+@keyframes coArmL  { 0% { transform: rotate(82deg); } 100% { transform: rotate(100deg); } }
+@keyframes coForeL { 0% { transform: rotate(98deg); } 100% { transform: rotate(72deg); } }
+@keyframes coArmR  { 0% { transform: rotate(-82deg); } 100% { transform: rotate(-100deg); } }
+@keyframes coForeR { 0% { transform: rotate(-98deg); } 100% { transform: rotate(-72deg); } }
+@keyframes coBody  { 0% { transform: translateY(0); } 100% { transform: translateY(-3px); } }
+
+/* 3 · Overhead Side Stretch (front, both sides): both arms overhead, the upper body leans slowly over to one side. */
+.oss .arm-l { transform: rotate(160deg); }
+.oss .arm-r { transform: rotate(-150deg); }
+.oss .leg-l { transform: rotate(8deg); }
+.oss .leg-r { transform: rotate(-8deg); }
+.oss .upper { animation: ossLean var(--oss) ease-in-out infinite alternate; }
+@keyframes ossLean { 0% { transform: rotate(2deg); } 100% { transform: rotate(17deg); } }
+
+/* 4 · Standing Quad Stretch (side, both sides): stand on the far leg. The near knee points down next to the standing knee
+   (knees together) and the near hand holds the foot behind, pulling the heel toward the glute. The far arm reaches
+   forward for balance. On each breath the near knee draws back a little and the heel comes closer. */
+.qs .leg-r  { transform: rotate(-2deg); }
+.qs .arm-l  { transform: rotate(16deg); }
+.qs .arm-r  { transform: rotate(-35deg); }
+.qs .fore-r { transform: rotate(-20deg); }
+.qs .leg-l  { animation: qsThigh var(--qs) ease-in-out infinite alternate; }
+.qs .shin-l { animation: qsShin  var(--qs) ease-in-out infinite alternate; }
+@keyframes qsThigh { 0% { transform: rotate(10deg); } 100% { transform: rotate(16deg); } }
+@keyframes qsShin  { 0% { transform: rotate(158deg); } 100% { transform: rotate(160deg); } }
+
+/* 5 · Standing Calf Stretch (side, both sides): the near leg steps back, straight, with the heel on the mat; the far front
+   knee bends over the foot. The body leans forward in one line with the back leg, and both hands rest on the front thigh.
+   On each breath the hips sink forward and the front knee bends a little more; the feet stay put. */
+.cs .shadow { transform: translateX(-16px) scaleX(1.05); }
+.cs .arm-l, .cs .arm-r { transform: rotate(-18deg); }
+.cs .body   { animation: csBody  var(--cs) ease-in-out infinite alternate; }
+.cs .upper  { animation: csLean  var(--cs) ease-in-out infinite alternate; }
+.cs .leg-l  { animation: csLean  var(--cs) ease-in-out infinite alternate; }
+.cs .leg-r  { animation: csFront var(--cs) ease-in-out infinite alternate; }
+.cs .shin-r { animation: csShin  var(--cs) ease-in-out infinite alternate; }
+@keyframes csBody  { 0% { transform: translate(-4px, 19.7px); } 100% { transform: translate(-1.4px, 22px); } }
+@keyframes csLean  { 0% { transform: rotate(40deg); } 100% { transform: rotate(42.4deg); } }
+@keyframes csFront { 0% { transform: rotate(-57.3deg); } 100% { transform: rotate(-59.8deg); } }
+@keyframes csShin  { 0% { transform: rotate(65.3deg); } 100% { transform: rotate(72.7deg); } }
+
+/* 6 · Kneeling Hip Flexor Stretch (side, both sides): a low lunge with the near (back) knee and shin on the mat and the far
+   front foot flat in front. The torso stays upright and the hands rest on the front thigh. On each breath the hips shift
+   forward and down, the front knee travels over the toes, and the torso leans back a little. The knees and feet stay put. */
+.hf .shadow { transform: scaleX(1.15); }
+.hf .arm-l, .hf .arm-r { transform: rotate(-18deg); }
+.hf .leg-r  { transform: rotate(-90deg); }
+.hf .body   { animation: hfBody     var(--hf) ease-in-out infinite alternate; }
+.hf .upper  { animation: hfUpper    var(--hf) ease-in-out infinite alternate; }
+.hf .leg-l  { animation: hfBack     var(--hf) ease-in-out infinite alternate; }
+.hf .shin-l { animation: hfBackShin var(--hf) ease-in-out infinite alternate; }
+.hf .shin-r { animation: hfShin     var(--hf) ease-in-out infinite alternate; }
+@keyframes hfBody     { 0% { transform: translate(2.6px, 43.6px); } 100% { transform: translate(9.4px, 46.3px); } }
+@keyframes hfUpper    { 0% { transform: rotate(0); } 100% { transform: rotate(-3deg); } }
+@keyframes hfBack     { 0% { transform: rotate(16deg); } 100% { transform: rotate(26deg); } }
+@keyframes hfBackShin { 0% { transform: rotate(74deg); } 100% { transform: rotate(64deg); } }
+@keyframes hfShin     { 0% { transform: rotate(106deg); } 100% { transform: rotate(116deg); } }
+
+/* 7 · Seated Single-Leg Hamstring Stretch (side, both sides): the near leg is straight on the mat, the far knee is bent with
+   the foot at the inner knee. On each breath the hips hinge further and the hands slide from the shin to the toes. */
+.hs .body   { transform: translate(-35px, 84px); }
+.hs .leg-l  { transform: rotate(-90deg); }
+.hs .leg-r  { transform: rotate(-150deg); }
+.hs .shin-r { transform: rotate(120deg); }
+.hs .upper  { animation: hsUpper var(--hs) ease-in-out infinite alternate; }
+.hs .arm-l, .hs .arm-r   { animation: hsArm  var(--hs) ease-in-out infinite alternate; }
+.hs .fore-l, .hs .fore-r { animation: hsFore var(--hs) ease-in-out infinite alternate; }
+@keyframes hsUpper { 0% { transform: rotate(30deg); } 100% { transform: rotate(42deg); } }
+@keyframes hsArm   { 0% { transform: rotate(-96.4deg); } 100% { transform: rotate(-109.1deg); } }
+@keyframes hsFore  { 0% { transform: rotate(44.5deg); } 100% { transform: rotate(37.5deg); } }
+
+/* 8 · Seated Butterfly Stretch (front): seated, soles together, knees out to the sides. Hands hold the feet with the elbows
+   out; on each breath the knees sink toward the mat and the chest folds forward. */
+.bf .body   { transform: translateY(74px); }
+.bf .shin-l { transform: rotate(-166deg); }
+.bf .shin-r { transform: rotate(166deg); }
+.bf .leg-l  { animation: bfLegL  var(--bf) ease-in-out infinite alternate; }
+.bf .leg-r  { animation: bfLegR  var(--bf) ease-in-out infinite alternate; }
+.bf .chest  { animation: bfChest var(--bf) ease-in-out infinite alternate; }
+.bf .arm-l  { animation: bfArmL  var(--bf) ease-in-out infinite alternate; }
+.bf .fore-l { animation: bfForeL var(--bf) ease-in-out infinite alternate; }
+.bf .arm-r  { animation: bfArmR  var(--bf) ease-in-out infinite alternate; }
+.bf .fore-r { animation: bfForeR var(--bf) ease-in-out infinite alternate; }
+@keyframes bfLegL  { 0% { transform: rotate(110deg); } 100% { transform: rotate(100deg); } }
+@keyframes bfLegR  { 0% { transform: rotate(-110deg); } 100% { transform: rotate(-100deg); } }
+@keyframes bfChest { 0% { transform: translateY(0); } 100% { transform: translateY(14px); } }
+@keyframes bfArmL  { 0% { transform: rotate(28.3deg); } 100% { transform: rotate(32.5deg); } }
+@keyframes bfForeL { 0% { transform: rotate(-50.5deg); } 100% { transform: rotate(-58.5deg); } }
+@keyframes bfArmR  { 0% { transform: rotate(-28.3deg); } 100% { transform: rotate(-32.5deg); } }
+@keyframes bfForeR { 0% { transform: rotate(50.5deg); } 100% { transform: rotate(58.5deg); } }
+
+/* 9 · Seated Figure-4 Glute Stretch (side, both sides): seated, the far knee bent with the foot on the mat, and the near
+   ankle crossed over the far knee, so the near knee falls open low in front (near thigh, near shin, and far thigh make
+   the "4"). The hands are on the mat behind the hips. On each breath the chest presses forward toward the crossed shin. */
+.fg .body   { transform: translate(-14px, 84px); }
+.fg .leg-r  { transform: rotate(-145deg); }
+.fg .shin-r { transform: rotate(110deg); }
+.fg .leg-l  { transform: rotate(-103deg); }
+.fg .shin-l { transform: rotate(-104deg); }
+.fg .arm-l, .fg .arm-r { transform: rotate(17deg); }
+.fg .upper  { animation: fgUpper var(--fg) ease-in-out infinite alternate; }
+@keyframes fgUpper { 0% { transform: rotate(-10deg); } 100% { transform: rotate(6deg); } }
+
+/* 10 · Seated Spinal Twist (front, both sides): seated, one leg on the mat, the other knee up with the foot crossed over.
+   The opposite elbow hooks the raised knee with the forearm up, the other hand reaches behind (50% opacity). On each
+   breath the twist deepens. */
+.tw .body   { transform: translateY(80px); }
+.tw .leg-l  { transform: rotate(92deg); }
+.tw .shin-l { transform: rotate(-176deg); }
+.tw .leg-r  { transform: rotate(-138.8deg); }
+.tw .shin-r { transform: rotate(106.7deg); }
+.tw .arm-r  { opacity: .5; }
+.tw .upper  { animation: twUpper var(--tw) ease-in-out infinite alternate; }
+.tw .arm-l  { animation: twArmL  var(--tw) ease-in-out infinite alternate; }
+.tw .fore-l { animation: twForeL var(--tw) ease-in-out infinite alternate; }
+.tw .arm-r  { animation: twArmR  var(--tw) ease-in-out infinite alternate; }
+@keyframes twUpper { 0% { transform: rotate(2deg); } 100% { transform: rotate(6deg); } }
+@keyframes twArmL  { 0% { transform: rotate(-41.9deg); } 100% { transform: rotate(-41.6deg); } }
+@keyframes twForeL { 0% { transform: rotate(-140deg); } 100% { transform: rotate(-144.4deg); } }
+@keyframes twArmR  { 0% { transform: rotate(-30deg); } 100% { transform: rotate(-58deg); } }
+
+/* 11 · Child's Pose (side, kneeling): hips back on the heels, the chest folded over the thighs, forehead on the mat, and both
+   arms stretched forward on the mat. On each breath the back rounds up a little and the forehead lifts; the hands stay put. */
+.cp .body   { transform: translate(-54px, 50px); }
+.cp .leg-l, .cp .leg-r   { transform: rotate(-36deg); }
+.cp .shin-l, .cp .shin-r { transform: rotate(126deg); }
+.cp .upper  { animation: cpUpper var(--cp) ease-in-out infinite alternate; }
+.cp .arm-l, .cp .arm-r { animation: cpArm var(--cp) ease-in-out infinite alternate; }
+@keyframes cpUpper { 0% { transform: rotate(103deg); } 100% { transform: rotate(99deg); } }
+@keyframes cpArm   { 0% { transform: rotate(-179.8deg); } 100% { transform: rotate(-171.6deg); } }
