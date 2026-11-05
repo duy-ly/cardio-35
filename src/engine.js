@@ -40,6 +40,7 @@ export class WorkoutEngine {
       phaseChange: [],
       tick: [],
       cue: [],
+      sound: [],
       leadInTick: [],
       pause: [],
       resume: [],
@@ -232,25 +233,49 @@ export class WorkoutEngine {
     this.currentIntervalDuration = interval.duration;
     this.currentIntervalRemaining = interval.duration;
 
+    if (index > 0) {
+      this.emit('sound', { type: 'chime', frequency: 880 });
+    }
+
     this.emit('phaseChange', this.state, interval);
     this.checkIntervalStartCues(interval);
   }
 
   checkIntervalStartCues(interval) {
-    if (interval.phase === WorkoutPhase.WARM_UP) {
+    if (interval.phase === WorkoutPhase.GET_READY) {
+      this.emit('cue', { type: 'GET_READY_START', text: 'Get ready to warm up.' });
+    } else if (interval.phase === WorkoutPhase.WARM_UP) {
       this.emit('cue', { type: 'WARM_UP_START', text: 'Warm up. Move at your own pace.' });
     } else if (interval.phase === WorkoutPhase.COOLDOWN) {
       if (interval.stretchIndex === 1) {
-        this.emit('cue', { type: 'COOLDOWN_START', text: 'Cooldown time. Great work.' });
+        this.emit('cue', {
+          type: 'COOLDOWN_START',
+          text: 'Cooldown time. Great work.',
+          stamp: 'COOLDOWN TIME',
+        });
       }
       this.emit('cue', { type: 'STRETCH_START', text: interval.exercise.name });
     } else if (interval.phase === WorkoutPhase.REST) {
       // Milestone cues in rest
       if (interval.roundIndex === 11) {
-        this.emit('cue', { type: 'HALFWAY', text: 'Halfway there.' });
+        this.emit('cue', {
+          type: 'HALFWAY',
+          text: 'Halfway there.',
+          stamp: 'HALFWAY THERE',
+        });
       } else if (interval.roundIndex === 16) {
-        this.emit('cue', { type: 'FINISHER', text: 'Last 6 rounds. Final push.' });
+        this.emit('cue', {
+          type: 'FINISHER',
+          text: 'Last 6 rounds. Final push.',
+          stamp: 'LAST 6 ROUNDS',
+        });
       }
+
+      const nextName = interval.nextExercise ? interval.nextExercise.name : '';
+      this.emit('cue', {
+        type: 'NEXT_EXERCISE',
+        text: `Next: ${nextName}`,
+      });
     }
   }
 
@@ -266,6 +291,7 @@ export class WorkoutEngine {
 
     if (this.leadInSeconds > 0) {
       this.leadInSeconds--;
+      this.emit('sound', { type: 'tick', frequency: 440 });
       this.emit('leadInTick', this.leadInSeconds);
       return;
     }
@@ -275,6 +301,13 @@ export class WorkoutEngine {
       intervalRemaining: this.currentIntervalRemaining,
       sessionRemaining: this.remainingSessionTime,
     });
+
+    if (
+      this.currentIntervalRemaining <= 3 &&
+      this.currentIntervalRemaining >= 1
+    ) {
+      this.emit('sound', { type: 'tick', frequency: 440 });
+    }
 
     // Check mid-interval cues
     if (this.currentInterval) {
@@ -295,7 +328,12 @@ export class WorkoutEngine {
         this.currentInterval.isBilateral &&
         this.currentIntervalRemaining === this.currentIntervalDuration / 2
       ) {
-        this.emit('cue', { type: 'SWITCH_SIDES', text: 'Switch sides' });
+        this.emit('sound', { type: 'chime', frequency: 880 });
+        this.emit('cue', {
+          type: 'SWITCH_SIDES',
+          text: 'Switch sides',
+          stamp: 'SWITCH SIDES',
+        });
       }
     }
 
@@ -349,6 +387,7 @@ export class WorkoutEngine {
     }
     this.state = WorkoutPhase.FINISHED;
     this.isPaused = false;
+    this.emit('sound', { type: 'chime', frequency: 880 });
     this.emit('cue', { type: 'WORKOUT_COMPLETE', text: 'Workout complete.' });
     this.emit('phaseChange', this.state, null);
   }

@@ -1,13 +1,17 @@
 import { WorkoutPhase } from './engine.js';
 import { PHASE_COLORS, formatTimeMS, formatTimeMMSS, ICON, getFigureSvg, COLORS } from './ui.js';
+import { SoundController } from './sound.js';
 
 export class App {
   constructor(options = {}) {
     this.root = options.root;
     this.engine = options.engine;
     this.wakeLock = options.wakeLock;
+    this.soundController =
+      options.soundController ||
+      new SoundController({ isMuted: options.isMuted });
 
-    this.isMuted = false;
+    this.isMuted = this.soundController ? this.soundController.isMuted : false;
     this.activeCue = null;
     this.cueTimeout = null;
     this.wakeLockWarning = false;
@@ -38,8 +42,26 @@ export class App {
       this.updateLeadInDisplay(sec);
     });
 
+    this.engine.on('sound', ({ type, frequency }) => {
+      if (this.soundController) {
+        if (type === 'tick') {
+          this.soundController.playTick();
+        } else if (type === 'chime') {
+          this.soundController.playChime();
+        }
+      }
+    });
+
     this.engine.on('cue', (cue) => {
-      this.showCue(cue);
+      if (this.soundController) {
+        this.soundController.speak(cue.text);
+      }
+      if (
+        cue.stamp ||
+        ['HALFWAY', 'FINISHER', 'SWITCH_SIDES', 'COOLDOWN_START'].includes(cue.type)
+      ) {
+        this.showCue(cue);
+      }
     });
 
     this.engine.on('pause', () => {
@@ -65,7 +87,11 @@ export class App {
 
   showCue(cue) {
     this.activeCue = cue;
-    this.renderCueElement();
+    if (cue.type === 'SWITCH_SIDES') {
+      this.renderActiveWorkout();
+    } else {
+      this.renderCueElement();
+    }
 
     if (this.cueTimeout) {
       clearTimeout(this.cueTimeout);
@@ -82,6 +108,9 @@ export class App {
   }
 
   handleStart() {
+    if (this.soundController) {
+      this.soundController.unlock();
+    }
     this.engine.start();
     if (this.wakeLock) {
       this.wakeLock.request().then((ok) => {
@@ -115,7 +144,11 @@ export class App {
   }
 
   handleMuteToggle() {
-    this.isMuted = !this.isMuted;
+    if (this.soundController) {
+      this.isMuted = this.soundController.toggleMute();
+    } else {
+      this.isMuted = !this.isMuted;
+    }
     this.render();
   }
 
@@ -127,10 +160,20 @@ export class App {
     const cueContainer = this.root.querySelector('.stamp-slot');
     if (!cueContainer) return;
 
-    if (this.activeCue) {
-      const iconHtml = this.activeCue.type === 'SWITCH_SIDES' ? `${ICON.swap('#fff')} ` : '';
-      cueContainer.innerHTML = `<span class="stamp">${iconHtml}${this.activeCue.text.toUpperCase()}</span>`;
-      cueContainer.style.display = 'block';
+    if (
+      this.activeCue &&
+      (this.activeCue.stamp ||
+        ['HALFWAY', 'FINISHER', 'SWITCH_SIDES', 'COOLDOWN_START'].includes(
+          this.activeCue.type
+        ))
+    ) {
+      const stampText = (
+        this.activeCue.stamp || this.activeCue.text
+      ).toUpperCase();
+      const iconHtml =
+        this.activeCue.type === 'SWITCH_SIDES' ? `${ICON.swap('#fff')} ` : '';
+      cueContainer.innerHTML = `<span class="stamp">${iconHtml}${stampText}</span>`;
+      cueContainer.style.display = 'flex';
     } else {
       cueContainer.innerHTML = '';
       cueContainer.style.display = 'none';

@@ -19,10 +19,14 @@ describe('WorkoutEngine - Initial & Get Ready', () => {
     expect(engine.isPaused).toBe(false);
   });
 
-  it('transitions to GET_READY for 10 seconds without decrementing session time', () => {
+  it('transitions to GET_READY for 10 seconds without decrementing session time and emits GET_READY_START cue', () => {
     const engine = new WorkoutEngine();
     const phaseChanges = [];
+    const cues = [];
+    const sounds = [];
     engine.on('phaseChange', (state) => phaseChanges.push(state));
+    engine.on('cue', (cue) => cues.push(cue));
+    engine.on('sound', (s) => sounds.push(s));
 
     engine.start();
 
@@ -31,16 +35,28 @@ describe('WorkoutEngine - Initial & Get Ready', () => {
     expect(engine.currentIntervalRemaining).toBe(10);
     expect(engine.remainingSessionTime).toBe(2340);
     expect(phaseChanges).toContain(WorkoutPhase.GET_READY);
+    expect(cues).toContainEqual({
+      type: 'GET_READY_START',
+      text: 'Get ready to warm up.',
+    });
 
-    // Advance 5 seconds
-    vi.advanceTimersByTime(5000);
-    expect(engine.state).toBe(WorkoutPhase.GET_READY);
-    expect(engine.currentIntervalRemaining).toBe(5);
-    expect(engine.remainingSessionTime).toBe(2340); // session time unchanged!
+    // Advance 7 seconds (3s left: 10 - 7 = 3)
+    vi.advanceTimersByTime(7000);
+    expect(engine.currentIntervalRemaining).toBe(3);
+    expect(sounds).toContainEqual({ type: 'tick', frequency: 440 });
 
-    // Advance 5 more seconds to reach 10 seconds total
-    vi.advanceTimersByTime(5000);
+    // Advance 1s (2s left)
+    vi.advanceTimersByTime(1000);
+    expect(engine.currentIntervalRemaining).toBe(2);
+
+    // Advance 1s (1s left)
+    vi.advanceTimersByTime(1000);
+    expect(engine.currentIntervalRemaining).toBe(1);
+
+    // Advance 1s to reach 10 seconds total -> transitions to WARM_UP
+    vi.advanceTimersByTime(1000);
     expect(engine.state).toBe(WorkoutPhase.WARM_UP);
+    expect(sounds).toContainEqual({ type: 'chime', frequency: 880 });
   });
 });
 
@@ -127,6 +143,7 @@ describe('WorkoutEngine - Full Session, Cooldown & Milestone Cues', () => {
         expect(cues).toContainEqual({
           type: 'HALFWAY',
           text: 'Halfway there.',
+          stamp: 'HALFWAY THERE',
         });
       }
 
@@ -134,6 +151,7 @@ describe('WorkoutEngine - Full Session, Cooldown & Milestone Cues', () => {
         expect(cues).toContainEqual({
           type: 'FINISHER',
           text: 'Last 6 rounds. Final push.',
+          stamp: 'LAST 6 ROUNDS',
         });
       }
 
@@ -155,6 +173,7 @@ describe('WorkoutEngine - Full Session, Cooldown & Milestone Cues', () => {
     expect(cues).toContainEqual({
       type: 'COOLDOWN_START',
       text: 'Cooldown time. Great work.',
+      stamp: 'COOLDOWN TIME',
     });
 
     // Advance through the 11 stretches
@@ -191,6 +210,183 @@ describe('WorkoutEngine - Full Session, Cooldown & Milestone Cues', () => {
       type: 'WORKOUT_COMPLETE',
       text: 'Workout complete.',
     });
+  });
+
+  it('milestone cues fire exactly once at their designated round and nowhere else', () => {
+    const engine = new WorkoutEngine();
+    const milestoneCues = [];
+    engine.on('cue', (c) => {
+      if (['HALFWAY', 'FINISHER', 'COOLDOWN_START'].includes(c.type)) {
+        milestoneCues.push({
+          type: c.type,
+          text: c.text,
+          stamp: c.stamp,
+          round: engine.roundIndex,
+          stretch: engine.stretchIndex,
+          phase: engine.state,
+        });
+      }
+    });
+
+    engine.start();
+    // Advance through entire workout (10s + 120s + 1760s + 460s = 2350s)
+    vi.advanceTimersByTime(2350000);
+
+    // HALFWAY: fired once, in REST after round 11
+    const halfwayCues = milestoneCues.filter((c) => c.type === 'HALFWAY');
+    expect(halfwayCues).toHaveLength(1);
+    expect(halfwayCues[0]).toEqual({
+      type: 'HALFWAY',
+      text: 'Halfway there.',
+      stamp: 'HALFWAY THERE',
+      round: 11,
+      stretch: 0,
+      phase: WorkoutPhase.REST,
+    });
+
+    // FINISHER: fired once, in REST after round 16 (before round 17)
+    const finisherCues = milestoneCues.filter((c) => c.type === 'FINISHER');
+    expect(finisherCues).toHaveLength(1);
+    expect(finisherCues[0]).toEqual({
+      type: 'FINISHER',
+      text: 'Last 6 rounds. Final push.',
+      stamp: 'LAST 6 ROUNDS',
+      round: 16,
+      stretch: 0,
+      phase: WorkoutPhase.REST,
+    });
+
+    // COOLDOWN_START: fired once, at start of COOLDOWN stretch 1
+    const cooldownCues = milestoneCues.filter((c) => c.type === 'COOLDOWN_START');
+    expect(cooldownCues).toHaveLength(1);
+    expect(cooldownCues[0]).toEqual({
+      type: 'COOLDOWN_START',
+      text: 'Cooldown time. Great work.',
+      stamp: 'COOLDOWN TIME',
+      round: 0,
+      stretch: 1,
+      phase: WorkoutPhase.COOLDOWN,
+    });
+  });
+
+  it('SWITCH_SIDES fires at exact half duration for bilateral stretches only, and never for non-bilateral stretches', () => {
+    const engine = new WorkoutEngine();
+    const switchEvents = [];
+    engine.on('cue', (c) => {
+      if (c.type === 'SWITCH_SIDES') {
+        switchEvents.push({
+          stretch: engine.currentExercise.name,
+          remaining: engine.currentIntervalRemaining,
+          duration: engine.currentIntervalDuration,
+          side: engine.stretchSide,
+        });
+      }
+    });
+
+    engine.start();
+    // Fast forward to COOLDOWN (skip GET_READY, WARM_UP, and 22 rounds)
+    vi.advanceTimersByTime(10000 + 120000 + 1760000);
+
+    expect(engine.state).toBe(WorkoutPhase.COOLDOWN);
+
+    const nonBilateralNames = [
+      'Standing Chest & Shoulder Opener',
+      'Seated Butterfly Stretch',
+      "Child's Pose",
+    ];
+
+    const bilateralExpected = [
+      { name: 'Neck Side Stretch', half: 20 },
+      { name: 'Overhead Side Stretch', half: 20 },
+      { name: 'Standing Quad Stretch', half: 25 },
+      { name: 'Standing Calf Stretch', half: 25 },
+      { name: 'Kneeling Hip Flexor Stretch', half: 25 },
+      { name: 'Seated Single-Leg Hamstring Stretch', half: 25 },
+      { name: 'Seated Figure-4 Glute Stretch', half: 25 },
+      { name: 'Seated Spinal Twist', half: 20 },
+    ];
+
+    for (let s = 1; s <= 11; s++) {
+      const stretch = engine.currentExercise;
+      const duration = stretch.duration;
+
+      for (let sec = 0; sec < duration; sec++) {
+        vi.advanceTimersByTime(1000);
+      }
+    }
+
+    // Verify exactly 8 SWITCH_SIDES events
+    expect(switchEvents).toHaveLength(8);
+
+    for (let i = 0; i < bilateralExpected.length; i++) {
+      const expected = bilateralExpected[i];
+      const actual = switchEvents[i];
+      expect(actual.stretch).toBe(expected.name);
+      expect(actual.remaining).toBe(expected.half);
+      expect(actual.side).toBe(2);
+    }
+
+    // Non-bilateral stretches must never appear in switchEvents
+    for (const nonBilateral of nonBilateralNames) {
+      expect(switchEvents.some((ev) => ev.stretch === nonBilateral)).toBe(false);
+    }
+  });
+
+  it('emits NEXT_EXERCISE cue during each rest interval', () => {
+    const engine = new WorkoutEngine();
+    const nextCues = [];
+    engine.on('cue', (c) => {
+      if (c.type === 'NEXT_EXERCISE') {
+        nextCues.push({
+          round: engine.roundIndex,
+          text: c.text,
+        });
+      }
+    });
+
+    engine.start();
+    // Pass GET_READY and WARM_UP
+    vi.advanceTimersByTime(10000 + 120000);
+
+    // Run 22 rounds
+    for (let r = 1; r <= 22; r++) {
+      // 60s work
+      vi.advanceTimersByTime(60000);
+      // REST interval entered!
+      const expectedNext =
+        r < 22 ? engine.sequence[r].exercise.name : 'Neck Side Stretch';
+      expect(nextCues).toContainEqual({
+        round: r,
+        text: `Next: ${expectedNext}`,
+      });
+      // 20s rest
+      vi.advanceTimersByTime(20000);
+    }
+
+    expect(nextCues).toHaveLength(22);
+  });
+
+  it('emits 440 Hz ticks for 3-2-1 countdown and 880 Hz chimes on phase transitions and switch sides', () => {
+    const engine = new WorkoutEngine();
+    const sounds = [];
+    engine.on('sound', (s) => sounds.push(s));
+
+    engine.start(); // starts GET_READY
+
+    // 10s GET_READY: at remaining 3, 2, 1, ticks should fire
+    vi.advanceTimersByTime(7000); // 3s remaining
+    expect(sounds[sounds.length - 1]).toEqual({ type: 'tick', frequency: 440 });
+
+    vi.advanceTimersByTime(1000); // 2s remaining
+    expect(sounds[sounds.length - 1]).toEqual({ type: 'tick', frequency: 440 });
+
+    vi.advanceTimersByTime(1000); // 1s remaining
+    expect(sounds[sounds.length - 1]).toEqual({ type: 'tick', frequency: 440 });
+
+    // Transition to WARM_UP: chime should fire!
+    vi.advanceTimersByTime(1000);
+    expect(engine.state).toBe(WorkoutPhase.WARM_UP);
+    expect(sounds[sounds.length - 1]).toEqual({ type: 'chime', frequency: 880 });
   });
 });
 

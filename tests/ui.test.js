@@ -25,6 +25,7 @@ describe('App UI & Screen Flow', () => {
   let root;
   let engine;
   let wakeLock;
+  let soundController;
   let app;
 
   beforeEach(() => {
@@ -46,7 +47,24 @@ describe('App UI & Screen Flow', () => {
       }),
     };
 
-    app = new App({ root, engine, wakeLock });
+    soundController = {
+      isMuted: false,
+      unlock: vi.fn(),
+      playTick: vi.fn(),
+      playChime: vi.fn(),
+      speak: vi.fn(),
+      cancelSpeech: vi.fn(),
+      setMuted: vi.fn().mockImplementation((m) => {
+        soundController.isMuted = m;
+        return m;
+      }),
+      toggleMute: vi.fn().mockImplementation(() => {
+        soundController.isMuted = !soundController.isMuted;
+        return soundController.isMuted;
+      }),
+    };
+
+    app = new App({ root, engine, wakeLock, soundController });
     app.init();
   });
 
@@ -183,5 +201,125 @@ describe('App UI & Screen Flow', () => {
     // Reset back to Home
     expect(engine.state).toBe(WorkoutPhase.IDLE);
     expect(root.querySelector('.wm1')?.textContent).toBe('CARDIO');
+  });
+
+  it('unlocks SoundController on START button click', () => {
+    const startBtn = root.querySelector('button.start');
+    startBtn.click();
+    expect(soundController.unlock).toHaveBeenCalled();
+  });
+
+  it('speaks cues and plays 3-2-1 countdown ticks and phase chimes via SoundController', () => {
+    const startBtn = root.querySelector('button.start');
+    startBtn.click(); // GET_READY start
+
+    // Get Ready spoken
+    expect(soundController.speak).toHaveBeenCalledWith('Get ready to warm up.');
+
+    // 7 seconds in: 3 seconds remaining in GET_READY -> ticks
+    vi.advanceTimersByTime(7000);
+    expect(soundController.playTick).toHaveBeenCalled();
+
+    // Advance 3 more seconds: transitions to WARM_UP -> chime played + warm-up cue spoken
+    vi.advanceTimersByTime(3000);
+    expect(soundController.playChime).toHaveBeenCalled();
+    expect(soundController.speak).toHaveBeenCalledWith('Warm up. Move at your own pace.');
+
+    // Advance 100 seconds (20s left in warm-up) -> announces First exercise
+    vi.advanceTimersByTime(100000);
+    expect(soundController.speak).toHaveBeenCalledWith(
+      `First: ${engine.sequence[0].exercise.name}`
+    );
+  });
+
+  it('renders black -3° tilted stamp for milestone cues and speaks milestone text', () => {
+    root.querySelector('button.start').click();
+
+    // Fast forward to round 11 REST (10s GET_READY + 120s WARM_UP + 10 rounds of 80s + 60s WORK)
+    vi.advanceTimersByTime(10000 + 120000 + 10 * 80000 + 60000);
+
+    expect(engine.state).toBe(WorkoutPhase.REST);
+    expect(engine.roundIndex).toBe(11);
+
+    // Spoke "Halfway there." and "Next: [round 12]"
+    expect(soundController.speak).toHaveBeenCalledWith('Halfway there.');
+
+    // Stamp element rendered with black background and -3deg tilt
+    const stampEl = root.querySelector('.stamp');
+    expect(stampEl).not.toBeNull();
+    expect(stampEl.textContent).toContain('HALFWAY THERE');
+  });
+
+  it('renders SWITCH_SIDES stamp, plays chime, speaks Switch sides, mirrors figure, and shows SIDE 2 OF 2', () => {
+    root.querySelector('button.start').click();
+
+    // Fast forward to COOLDOWN (10s + 120s + 22*80s = 1890s)
+    vi.advanceTimersByTime(10000 + 120000 + 22 * 80000);
+
+    expect(engine.state).toBe(WorkoutPhase.COOLDOWN);
+    expect(engine.stretchIndex).toBe(1); // Neck Side Stretch (40s, bilateral)
+
+    // Stretch 1 side 1: not mirrored, no SIDE 2 OF 2
+    expect(root.querySelector('.stage .fig.mirror')).toBeNull();
+    expect(root.textContent).not.toContain('SIDE 2 OF 2');
+
+    // Advance 20 seconds to halfway point (40s / 2 = 20s)
+    vi.advanceTimersByTime(20000);
+
+    // Switch sides speech and chime
+    expect(soundController.speak).toHaveBeenCalledWith('Switch sides');
+    expect(soundController.playChime).toHaveBeenCalled();
+
+    // Stamp shown
+    const stampEl = root.querySelector('.stamp');
+    expect(stampEl).not.toBeNull();
+    expect(stampEl.textContent).toContain('SWITCH SIDES');
+
+    // Figure mirrored
+    expect(root.querySelector('.stage .fig.mirror')).not.toBeNull();
+
+    // SIDE 2 OF 2 displayed
+    expect(root.textContent).toContain('SIDE 2 OF 2');
+  });
+
+  it('Mute button on Home screen toggles mute and updates icon', () => {
+    const muteBtn = root.querySelector('.btn-mute');
+    expect(muteBtn).not.toBeNull();
+    expect(app.isMuted).toBe(false);
+
+    // Click mute on Home
+    muteBtn.click();
+    expect(soundController.toggleMute).toHaveBeenCalled();
+    expect(app.isMuted).toBe(true);
+
+    // Icon should show muted state
+    const mutedBtn = root.querySelector('.btn-mute');
+    expect(mutedBtn.innerHTML).toContain('line'); // soundMuted icon has line elements
+
+    // Click mute again to unmute
+    mutedBtn.click();
+    expect(app.isMuted).toBe(false);
+  });
+
+  it('Mute button on Workout screen toggles mute and updates icon', () => {
+    root.querySelector('button.start').click();
+    vi.advanceTimersByTime(10000); // In WARM_UP
+
+    const muteBtn = root.querySelector('.btn-mute');
+    expect(muteBtn).not.toBeNull();
+    expect(app.isMuted).toBe(false);
+
+    // Click mute on Workout screen
+    muteBtn.click();
+    expect(soundController.toggleMute).toHaveBeenCalled();
+    expect(app.isMuted).toBe(true);
+
+    // Re-rendered with soundMuted icon
+    const workoutMuteBtn = root.querySelector('.btn-mute');
+    expect(workoutMuteBtn.innerHTML).toContain('line');
+
+    // Click again to unmute
+    workoutMuteBtn.click();
+    expect(app.isMuted).toBe(false);
   });
 });

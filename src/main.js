@@ -1,5 +1,6 @@
 import { WorkoutEngine } from './engine.js';
 import { WakeLockController } from './wake-lock.js';
+import { SoundController } from './sound.js';
 import { App } from './app.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -7,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!root) return;
 
   const engine = new WorkoutEngine();
+  const soundController = new SoundController();
   const wakeLock = new WakeLockController({
     navigator,
     document,
@@ -15,6 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
     },
   });
 
-  const app = new App({ root, engine, wakeLock });
+  const app = new App({ root, engine, wakeLock, soundController });
   app.init();
 });
