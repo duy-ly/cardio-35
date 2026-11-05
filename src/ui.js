@@ -1,3 +1,5 @@
+import { CARDIO_POOL, COOLDOWN_STRETCHES } from './generator.js';
+
 export const COLORS = Object.freeze({
   cream: '#FFF6EE',
   coral: '#F25533',
@@ -51,9 +53,11 @@ export function renderWeek(days = []) {
   return `<div class="week">${days.map((on) => `<i class="${on ? 'on' : ''}"></i>`).join('')}</div>`;
 }
 
-export const SIDE_VIEW = Object.freeze([
-  'bk', 'sj', 'hk', 'rl', 'qs', 'cs', 'hf', 'hs', 'fg', 'cp',
-]);
+export const SIDE_VIEW = Object.freeze(
+  [...CARDIO_POOL, ...COOLDOWN_STRETCHES]
+    .filter((m) => m.view === 'side')
+    .map((m) => m.id)
+);
 
 const limb = (side, upper, lower, len) =>
   `<g class="${upper}-${side}"><line x1="0" y1="0" x2="0" y2="${len}"/><g transform="translate(0,${len})"><g class="${lower}-${side}"><line x1="0" y1="0" x2="0" y2="${len}"/></g></g></g>`;

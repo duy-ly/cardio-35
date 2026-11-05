@@ -431,7 +431,7 @@ describe('App UI & Screen Flow', () => {
       expect(root.querySelector('.card.resume')).toBeNull();
     });
 
-    it('clicking RESUME restores session in paused state, and tapping Play starts lead-in', async () => {
+    it('clicking RESUME restores session in paused state without requesting wake lock, and tapping Play starts lead-in showing "3 · 2 · 1"', async () => {
       // Start a workout, advance to round 1 WORK, 40s remaining
       engine.start();
       vi.advanceTimersByTime(10000); // GET_READY
@@ -453,6 +453,8 @@ describe('App UI & Screen Flow', () => {
       expect(resumeCard).not.toBeNull();
       expect(resumeCard.textContent).toContain('RESUME 1/22');
 
+      const wakeLockRequestsBefore = wakeLock.request.mock.calls.length;
+
       // Tap resume card
       resumeCard.click();
 
@@ -462,20 +464,48 @@ describe('App UI & Screen Flow', () => {
       expect(reloadedEngine.currentIntervalRemaining).toBe(40);
       expect(reloadedEngine.isPaused).toBe(true);
 
+      // Must NOT request wake lock while still paused
+      expect(wakeLock.request.mock.calls.length).toBe(wakeLockRequestsBefore);
+
       const mainBtn = root.querySelector('button.btn-main');
       expect(mainBtn.getAttribute('data-action')).toBe('resume');
 
-      // Tap Play button: triggers resume with 3s lead-in
+      // Tap Play button: triggers resume with 3s lead-in and requests wake lock
       mainBtn.click();
+      expect(wakeLock.request.mock.calls.length).toBe(wakeLockRequestsBefore + 1);
       expect(reloadedEngine.isPaused).toBe(false);
       expect(reloadedEngine.leadInSeconds).toBe(3);
 
-      vi.advanceTimersByTime(3000); // Complete 3s lead-in
+      // "3 · 2 · 1" appears on screen during resume lead-in
+      expect(root.textContent).toContain('3 · 2 · 1');
+      expect(root.querySelector('.lead-in-indicator')?.textContent).toBe('3 · 2 · 1');
+      expect(root.querySelector('.count')?.textContent).toBe('3');
+
+      // 1s into lead-in: countdown 2
+      vi.advanceTimersByTime(1000);
+      expect(reloadedEngine.leadInSeconds).toBe(2);
+      expect(root.textContent).toContain('3 · 2 · 1');
+      expect(root.querySelector('.lead-in-indicator')?.textContent).toBe('3 · 2 · 1');
+      expect(root.querySelector('.count')?.textContent).toBe('2');
+
+      // 2s into lead-in: countdown 1
+      vi.advanceTimersByTime(1000);
+      expect(reloadedEngine.leadInSeconds).toBe(1);
+      expect(root.textContent).toContain('3 · 2 · 1');
+      expect(root.querySelector('.lead-in-indicator')?.textContent).toBe('3 · 2 · 1');
+      expect(root.querySelector('.count')?.textContent).toBe('1');
+
+      // Complete 3s lead-in: lead-in indicator removed, interval resumes
+      vi.advanceTimersByTime(1000);
       expect(reloadedEngine.leadInSeconds).toBe(0);
       expect(reloadedEngine.currentIntervalRemaining).toBe(40);
+      expect(root.querySelector('.lead-in-indicator')).toBeNull();
+      expect(root.textContent).not.toContain('3 · 2 · 1');
+      expect(root.querySelector('.count')?.textContent).toBe('40');
 
       vi.advanceTimersByTime(1000);
       expect(reloadedEngine.currentIntervalRemaining).toBe(39);
+      expect(root.querySelector('.count')?.textContent).toBe('39');
     });
 
     it('tapping START on Home clears saved active session and starts a fresh workout', () => {
@@ -496,9 +526,14 @@ describe('App UI & Screen Flow', () => {
       expect(engine.state).toBe(WorkoutPhase.GET_READY);
     });
 
-    it('completing a workout saves it to storage, updates Finished screen stats, and clears active session', () => {
-      engine.start();
+    it('completing a workout saves it to storage, updates Finished screen stats, clears active session, and releases wake lock', () => {
+      wakeLock.release.mockClear();
+      root.querySelector('button.start').click();
+      expect(wakeLock.request).toHaveBeenCalled();
+
+      // Completing workout must release wake lock
       engine.finish();
+      expect(wakeLock.release).toHaveBeenCalled();
 
       // History should have 1 entry
       const history = storage.getHistory();
@@ -522,14 +557,34 @@ describe('App UI & Screen Flow', () => {
       const squares = weekEl.querySelectorAll('i');
       expect(squares[6].classList.contains('on')).toBe(true); // today is on
 
-      // Return home: should now display updated streak on Home
+      // Return home: should release wake lock again and reset to Home
+      wakeLock.release.mockClear();
       const homeBtn = root.querySelector('button.home');
       homeBtn.click();
 
+      expect(wakeLock.release).toHaveBeenCalled();
       expect(engine.state).toBe(WorkoutPhase.IDLE);
       expect(root.querySelector('.streak b')?.textContent).toBe('1');
       const homeSquares = root.querySelectorAll('.week i');
       expect(homeSquares[6].classList.contains('on')).toBe(true);
+    });
+
+    it('requestWakeLock and releaseWakeLock helper methods manage wake lock and errors cleanly', async () => {
+      wakeLock.request.mockClear();
+      wakeLock.release.mockClear();
+
+      const ok = await app.requestWakeLock();
+      expect(ok).toBe(true);
+      expect(wakeLock.request).toHaveBeenCalled();
+
+      await app.releaseWakeLock();
+      expect(wakeLock.release).toHaveBeenCalled();
+
+      // When wakeLock.request returns false, show notice
+      wakeLock.request.mockResolvedValueOnce(false);
+      const failed = await app.requestWakeLock();
+      expect(failed).toBe(false);
+      expect(app.wakeLockWarning).toBe(true);
     });
   });
 

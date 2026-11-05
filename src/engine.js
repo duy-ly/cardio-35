@@ -19,6 +19,18 @@ export const WorkoutPhase = Object.freeze({
   FINISHED: 'FINISHED',
 });
 
+export function createInterval(options = {}) {
+  return {
+    countsTowardSession: true,
+    exercise: null,
+    nextExercise: null,
+    roundIndex: 0,
+    stretchIndex: 0,
+    isBilateral: false,
+    ...options,
+  };
+}
+
 export class WorkoutEngine {
   constructor(options = {}) {
     this.pool = options.pool || CARDIO_POOL;
@@ -75,28 +87,24 @@ export class WorkoutEngine {
     const intervals = [];
 
     // 1. GET_READY (10s)
-    intervals.push({
-      phase: WorkoutPhase.GET_READY,
-      duration: GET_READY_DURATION_SEC,
-      countsTowardSession: false,
-      exercise: null,
-      nextExercise: { name: 'Warm up' },
-      roundIndex: 0,
-      stretchIndex: 0,
-      isBilateral: false,
-    });
+    intervals.push(
+      createInterval({
+        phase: WorkoutPhase.GET_READY,
+        duration: GET_READY_DURATION_SEC,
+        countsTowardSession: false,
+        nextExercise: { name: 'Warm up' },
+      })
+    );
 
     // 2. WARM_UP (120s)
-    intervals.push({
-      phase: WorkoutPhase.WARM_UP,
-      duration: WARM_UP_DURATION_SEC,
-      countsTowardSession: true,
-      exercise: { name: 'Warm up' },
-      nextExercise: this.sequence[0].exercise,
-      roundIndex: 0,
-      stretchIndex: 0,
-      isBilateral: false,
-    });
+    intervals.push(
+      createInterval({
+        phase: WorkoutPhase.WARM_UP,
+        duration: WARM_UP_DURATION_SEC,
+        exercise: { name: 'Warm up' },
+        nextExercise: this.sequence[0].exercise,
+      })
+    );
 
     // 3. 22 Cardio Rounds (60s WORK / 20s REST)
     for (let r = 0; r < this.sequence.length; r++) {
@@ -104,17 +112,16 @@ export class WorkoutEngine {
       const roundNum = currentRound.round;
 
       // WORK
-      intervals.push({
-        phase: WorkoutPhase.WORK,
-        duration: WORK_DURATION_SEC,
-        countsTowardSession: true,
-        exercise: currentRound.exercise,
-        nextExercise: currentRound.exercise,
-        roundIndex: roundNum,
-        isFinisher: currentRound.isFinisher,
-        stretchIndex: 0,
-        isBilateral: false,
-      });
+      intervals.push(
+        createInterval({
+          phase: WorkoutPhase.WORK,
+          duration: WORK_DURATION_SEC,
+          exercise: currentRound.exercise,
+          nextExercise: currentRound.exercise,
+          roundIndex: roundNum,
+          isFinisher: currentRound.isFinisher,
+        })
+      );
 
       // REST
       const nextEx =
@@ -122,17 +129,15 @@ export class WorkoutEngine {
           ? this.sequence[r + 1].exercise
           : this.stretches[0];
 
-      intervals.push({
-        phase: WorkoutPhase.REST,
-        duration: REST_DURATION_SEC,
-        countsTowardSession: true,
-        exercise: null,
-        nextExercise: nextEx,
-        roundIndex: roundNum,
-        isFinisher: currentRound.isFinisher,
-        stretchIndex: 0,
-        isBilateral: false,
-      });
+      intervals.push(
+        createInterval({
+          phase: WorkoutPhase.REST,
+          duration: REST_DURATION_SEC,
+          nextExercise: nextEx,
+          roundIndex: roundNum,
+          isFinisher: currentRound.isFinisher,
+        })
+      );
     }
 
     // 4. Cooldown (11 stretches)
@@ -140,16 +145,16 @@ export class WorkoutEngine {
       const stretch = this.stretches[s];
       const nextStretch = s + 1 < this.stretches.length ? this.stretches[s + 1] : null;
 
-      intervals.push({
-        phase: WorkoutPhase.COOLDOWN,
-        duration: stretch.duration,
-        countsTowardSession: true,
-        exercise: stretch,
-        nextExercise: nextStretch,
-        roundIndex: 0,
-        stretchIndex: s + 1,
-        isBilateral: stretch.bilateral || false,
-      });
+      intervals.push(
+        createInterval({
+          phase: WorkoutPhase.COOLDOWN,
+          duration: stretch.duration,
+          exercise: stretch,
+          nextExercise: nextStretch,
+          stretchIndex: s + 1,
+          isBilateral: stretch.bilateral || false,
+        })
+      );
     }
 
     return intervals;
@@ -359,13 +364,12 @@ export class WorkoutEngine {
       return;
     }
     this.isPaused = false;
+    this.leadInSeconds = skipLeadIn ? 0 : 3;
     this.emit('resume');
 
     if (skipLeadIn) {
-      this.leadInSeconds = 0;
       this.startTimer();
     } else {
-      this.leadInSeconds = 3;
       this.emit('leadInTick', 3);
       this.startTimer();
     }

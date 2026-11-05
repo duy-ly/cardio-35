@@ -36,6 +36,7 @@ export class App {
     this.engine.on('phaseChange', (phase) => {
       this.updateThemeColor(PHASE_COLORS[phase]);
       if (phase === WorkoutPhase.FINISHED) {
+        this.releaseWakeLock();
         this.storage.saveWorkout({ duration: this.engine.elapsedSessionTime || 2340 });
         this.storage.clearActiveSession();
       } else if (phase !== WorkoutPhase.IDLE && phase !== WorkoutPhase.GET_READY) {
@@ -149,49 +150,47 @@ export class App {
     this.render();
   }
 
+  requestWakeLock() {
+    if (this.wakeLock) {
+      return this.wakeLock.request().then((ok) => {
+        if (!ok) {
+          this.showWakeLockNotice(true);
+        }
+        return ok;
+      });
+    }
+    return Promise.resolve(false);
+  }
+
+  releaseWakeLock() {
+    if (this.wakeLock) {
+      return this.wakeLock.release();
+    }
+    return Promise.resolve();
+  }
+
   handleStart() {
     if (this.soundController) {
       this.soundController.unlock();
     }
     this.storage.clearActiveSession();
     this.engine.start();
-    if (this.wakeLock) {
-      this.wakeLock.request().then((ok) => {
-        if (!ok) {
-          this.showWakeLockNotice(true);
-        }
-      });
-    }
+    this.requestWakeLock();
   }
 
   handleResume() {
     const session = this.storage.getActiveSession();
     if (!session) return;
     this.engine.restoreSession(session);
-    if (this.wakeLock) {
-      this.wakeLock.request().then((ok) => {
-        if (!ok) {
-          this.showWakeLockNotice(true);
-        }
-      });
-    }
   }
 
   handlePauseResume() {
     if (this.engine.isPaused) {
       this.engine.resume();
-      if (this.wakeLock) {
-        this.wakeLock.request().then((ok) => {
-          if (!ok) {
-            this.showWakeLockNotice(true);
-          }
-        });
-      }
+      this.requestWakeLock();
     } else {
       this.engine.pause();
-      if (this.wakeLock) {
-        this.wakeLock.release();
-      }
+      this.releaseWakeLock();
     }
   }
 
@@ -209,6 +208,7 @@ export class App {
   }
 
   handleHome() {
+    this.releaseWakeLock();
     this.engine.reset();
   }
 
@@ -238,8 +238,30 @@ export class App {
 
   updateLeadInDisplay(sec) {
     const countEl = this.root.querySelector('.count');
-    if (countEl && sec > 0) {
-      countEl.textContent = sec;
+    let leadInEl = this.root.querySelector('.lead-in-indicator');
+
+    if (sec > 0) {
+      if (countEl) {
+        countEl.textContent = String(sec);
+      }
+      if (!leadInEl) {
+        leadInEl = document.createElement('div');
+        leadInEl.className = 'lead-in lead-in-indicator stamp';
+        leadInEl.textContent = '3 · 2 · 1';
+        if (countEl) {
+          countEl.before(leadInEl);
+        } else {
+          this.root.querySelector('.col')?.prepend(leadInEl);
+        }
+      } else {
+        leadInEl.textContent = '3 · 2 · 1';
+        leadInEl.style.display = 'flex';
+      }
+    } else {
+      if (leadInEl) {
+        leadInEl.remove();
+      }
+      this.updateTimersAndBand();
     }
   }
 
@@ -399,13 +421,18 @@ export class App {
 
     let topProgress = '';
     let contentHtml = '';
+    const isLeadIn = !isPaused && this.engine.leadInSeconds > 0;
+    const leadInHtml = isLeadIn
+      ? '<div class="lead-in lead-in-indicator stamp">3 · 2 · 1</div>'
+      : '';
 
     if (phase === WorkoutPhase.GET_READY) {
       topProgress = 'WARM UP';
       contentHtml = `
         <div class="mid">
           <div class="lbl">GET READY</div>
-          <div class="count rest tab">${remaining}</div>
+          ${leadInHtml}
+          <div class="count rest tab">${isLeadIn ? this.engine.leadInSeconds : remaining}</div>
         </div>
         <div class="lbl next-label">NEXT</div>
         <div class="name next-name" style="margin-top:.6cqh">Warm up</div>
@@ -416,7 +443,8 @@ export class App {
       contentHtml = `
         <div class="mid">
           <div class="lbl">WARM UP</div>
-          <div class="count warm tab">${formatTimeMS(remaining)}</div>
+          ${leadInHtml}
+          <div class="count warm tab">${isLeadIn ? this.engine.leadInSeconds : formatTimeMS(remaining)}</div>
         </div>
         <div class="lbl next-label">FIRST</div>
         <div class="name next-name" style="margin-top:.6cqh">${round1Name}</div>
@@ -426,7 +454,8 @@ export class App {
       const exName = this.engine.currentExercise ? this.engine.currentExercise.name : '';
       const mode = this.engine.currentExercise?.id || 'jj';
       contentHtml = `
-        <div class="count tab">${remaining}</div>
+        ${leadInHtml}
+        <div class="count tab">${isLeadIn ? this.engine.leadInSeconds : remaining}</div>
         <div class="stage">${getFigureSvg('#fff', mode)}</div>
         <div class="name exercise-name">${exName}</div>
       `;
@@ -436,7 +465,8 @@ export class App {
       contentHtml = `
         <div class="mid">
           <div class="lbl">REST</div>
-          <div class="count rest tab">${remaining}</div>
+          ${leadInHtml}
+          <div class="count rest tab">${isLeadIn ? this.engine.leadInSeconds : remaining}</div>
           <div class="stamp-slot" style="display:none"></div>
         </div>
         <div class="lbl next-label">NEXT</div>
@@ -452,7 +482,8 @@ export class App {
 
       contentHtml = `
         <div class="stamp-slot" style="display:none;margin-top:1.6cqh"></div>
-        <div class="count cool tab">${remaining}</div>
+        ${leadInHtml}
+        <div class="count cool tab">${isLeadIn ? this.engine.leadInSeconds : remaining}</div>
         <div class="stage">${getFigureSvg('#fff', mode, mirrorClass)}</div>
         <div class="name exercise-name">${stretchName}</div>
         ${isSide2 ? '<div class="lbl side-label" style="margin-top:.8cqh">SIDE 2 OF 2</div>' : ''}

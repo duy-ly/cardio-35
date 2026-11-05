@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { WorkoutEngine, WorkoutPhase } from '../src/engine.js';
+import { WorkoutEngine, WorkoutPhase, createInterval } from '../src/engine.js';
 import { TOTAL_SESSION_SEC } from '../src/generator.js';
 
 describe('WorkoutEngine - Initial & Get Ready', () => {
@@ -581,5 +581,32 @@ describe('WorkoutEngine - Session Serialization & Restoration', () => {
     expect(newEngine.stretchIndex).toBe(3);
     expect(newEngine.currentIntervalRemaining).toBe(20);
     expect(newEngine.isPaused).toBe(true);
+  });
+
+  it('createInterval factory assigns defaults and custom properties cleanly', () => {
+    const defaultInterval = createInterval({ phase: WorkoutPhase.WORK, duration: 60 });
+    expect(defaultInterval).toEqual({
+      phase: WorkoutPhase.WORK,
+      duration: 60,
+      countsTowardSession: true,
+      exercise: null,
+      nextExercise: null,
+      roundIndex: 0,
+      stretchIndex: 0,
+      isBilateral: false,
+    });
+
+    const customInterval = createInterval({
+      phase: WorkoutPhase.GET_READY,
+      duration: 10,
+      countsTowardSession: false,
+      nextExercise: { name: 'Warm up' },
+      roundIndex: 5,
+      isFinisher: true,
+    });
+    expect(customInterval.countsTowardSession).toBe(false);
+    expect(customInterval.nextExercise).toEqual({ name: 'Warm up' });
+    expect(customInterval.roundIndex).toBe(5);
+    expect(customInterval.isFinisher).toBe(true);
   });
 });
