@@ -47,6 +47,10 @@ export const ICON = {
     `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg>`,
 };
 
+export function renderWeek(days = []) {
+  return `<div class="week">${days.map((on) => `<i class="${on ? 'on' : ''}"></i>`).join('')}</div>`;
+}
+
 export function getFigureSvg(color = '#fff', mode = 'jj', extra = '') {
   return `<svg class="fig ${mode} ${extra}" viewBox="0 0 200 250" aria-hidden="true">
     <ellipse class="shadow" cx="100" cy="236" rx="46" ry="6" fill="${color}" opacity=".2"/>
