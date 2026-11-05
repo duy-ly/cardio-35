@@ -51,16 +51,32 @@ export function renderWeek(days = []) {
   return `<div class="week">${days.map((on) => `<i class="${on ? 'on' : ''}"></i>`).join('')}</div>`;
 }
 
+export const SIDE_VIEW = Object.freeze([
+  'bk', 'sj', 'hk', 'rl', 'qs', 'cs', 'hf', 'hs', 'fg', 'cp',
+]);
+
+const limb = (side, upper, lower, len) =>
+  `<g class="${upper}-${side}"><line x1="0" y1="0" x2="0" y2="${len}"/><g transform="translate(0,${len})"><g class="${lower}-${side}"><line x1="0" y1="0" x2="0" y2="${len}"/></g></g></g>`;
+
 export function getFigureSvg(color = '#fff', mode = 'jj', extra = '') {
-  return `<svg class="fig ${mode} ${extra}" viewBox="0 0 200 250" aria-hidden="true">
+  const modeId = typeof mode === 'object' && mode !== null ? mode.id : mode;
+  const isSide = SIDE_VIEW.includes(modeId);
+  const classList = ['fig', modeId, isSide ? 'side' : '', extra].filter(Boolean).join(' ');
+
+  return `<svg class="${classList}" viewBox="0 0 200 250" aria-hidden="true">
     <ellipse class="shadow" cx="100" cy="236" rx="46" ry="6" fill="${color}" opacity=".2"/>
     <g class="body" stroke="${color}" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" fill="none">
-      <line x1="100" y1="140" x2="80" y2="210"/>
-      <line x1="100" y1="140" x2="120" y2="210"/>
-      <line x1="100" y1="66" x2="100" y2="140"/>
-      <line x1="100" y1="74" x2="70" y2="120"/>
-      <line x1="100" y1="74" x2="130" y2="120"/>
-      <circle class="head" cx="100" cy="40" r="17" fill="${color}" stroke="none"/>
+      <g transform="translate(100,140)">${limb('r', 'leg', 'shin', 42)}</g>
+      <g transform="translate(100,140)">${limb('l', 'leg', 'shin', 42)}</g>
+      <g transform="translate(100,140)"><g class="upper"><g transform="translate(-100,-140)">
+        <line x1="100" y1="100" x2="100" y2="140"/>
+        <g class="chest">
+          <g transform="translate(100,74)">${limb('r', 'arm', 'fore', 31)}</g>
+          <line x1="100" y1="66" x2="100" y2="106"/>
+          <g transform="translate(100,74)">${limb('l', 'arm', 'fore', 31)}</g>
+          <circle class="head" cx="100" cy="40" r="17" fill="${color}" stroke="none"/>
+        </g>
+      </g></g></g>
     </g>
   </svg>`;
 }
