@@ -286,6 +286,70 @@ html, body {
   letter-spacing: -0.07em;
 }
 
+.tc .streak {
+  margin-top: 1.8dvh;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
+}
+
+.tc .streak b {
+  font-size: clamp(36px, 6dvh, 80px);
+  color: var(--coral);
+  line-height: 1;
+}
+
+.tc .streak span {
+  font-size: clamp(12px, 1.9dvh, 24px);
+  letter-spacing: 0.14em;
+  font-weight: 900;
+  color: var(--navy);
+}
+
+.tc .week {
+  display: flex;
+  gap: clamp(4px, 0.8dvh, 10px);
+  margin-top: 1.2dvh;
+}
+
+.tc .week i {
+  flex: 1;
+  height: clamp(26px, 3.6dvh, 44px);
+  border-radius: 8px;
+  background: #F4E6DB;
+}
+
+.tc .week i.on {
+  background: var(--coral);
+}
+
+.tc .resume {
+  margin-top: 1.8dvh;
+  padding: 1.4dvh 1.8dvh;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  font-size: clamp(15px, 2.1dvh, 28px);
+  color: var(--navy);
+  cursor: pointer;
+}
+
+.tc .resume i {
+  width: 2.2em;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #FFE4D6;
+  display: grid;
+  place-items: center;
+}
+
+.tc .resume i svg {
+  width: 50%;
+  height: 50%;
+}
+
 /* Full-width START block */
 .tc .start {
   flex: 0 0 auto;

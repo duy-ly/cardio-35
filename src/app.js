@@ -1,6 +1,7 @@
 import { WorkoutPhase } from './engine.js';
-import { PHASE_COLORS, formatTimeMS, formatTimeMMSS, ICON, getFigureSvg, COLORS } from './ui.js';
+import { PHASE_COLORS, formatTimeMS, formatTimeMMSS, ICON, getFigureSvg, COLORS, renderWeek } from './ui.js';
 import { SoundController } from './sound.js';
+import { WorkoutStorage } from './storage.js';
 
 export class App {
   constructor(options = {}) {
@@ -10,6 +11,7 @@ export class App {
     this.soundController =
       options.soundController ||
       new SoundController({ isMuted: options.isMuted });
+    this.storage = options.storage || new WorkoutStorage();
 
     this.isMuted = this.soundController ? this.soundController.isMuted : false;
     this.activeCue = null;
@@ -17,6 +19,7 @@ export class App {
     this.wakeLockWarning = false;
 
     this.handleStart = this.handleStart.bind(this);
+    this.handleResume = this.handleResume.bind(this);
     this.handlePauseResume = this.handlePauseResume.bind(this);
     this.handleSkip = this.handleSkip.bind(this);
     this.handleMuteToggle = this.handleMuteToggle.bind(this);
@@ -31,11 +34,18 @@ export class App {
   setupEngineListeners() {
     this.engine.on('phaseChange', (phase) => {
       this.updateThemeColor(PHASE_COLORS[phase]);
+      if (phase === WorkoutPhase.FINISHED) {
+        this.storage.saveWorkout({ duration: this.engine.elapsedSessionTime || 2340 });
+        this.storage.clearActiveSession();
+      } else if (phase !== WorkoutPhase.IDLE && phase !== WorkoutPhase.GET_READY) {
+        this.saveActiveSession();
+      }
       this.render();
     });
 
     this.engine.on('tick', () => {
       this.updateTimersAndBand();
+      this.saveActiveSession();
     });
 
     this.engine.on('leadInTick', (sec) => {
@@ -65,12 +75,27 @@ export class App {
     });
 
     this.engine.on('pause', () => {
+      this.saveActiveSession();
       this.render();
     });
 
     this.engine.on('resume', () => {
+      this.saveActiveSession();
       this.render();
     });
+  }
+
+  saveActiveSession() {
+    if (
+      this.engine.state !== WorkoutPhase.IDLE &&
+      this.engine.state !== WorkoutPhase.GET_READY &&
+      this.engine.state !== WorkoutPhase.FINISHED
+    ) {
+      const snapshot = this.engine.serializeSession();
+      if (snapshot) {
+        this.storage.saveActiveSession(snapshot);
+      }
+    }
   }
 
   updateThemeColor(color) {
@@ -111,7 +136,21 @@ export class App {
     if (this.soundController) {
       this.soundController.unlock();
     }
+    this.storage.clearActiveSession();
     this.engine.start();
+    if (this.wakeLock) {
+      this.wakeLock.request().then((ok) => {
+        if (!ok) {
+          this.showWakeLockNotice(true);
+        }
+      });
+    }
+  }
+
+  handleResume() {
+    const session = this.storage.getActiveSession();
+    if (!session) return;
+    this.engine.restoreSession(session);
     if (this.wakeLock) {
       this.wakeLock.request().then((ok) => {
         if (!ok) {
@@ -254,6 +293,32 @@ export class App {
   }
 
   renderHome() {
+    const streak = this.storage.getStreak();
+    const weekDays = this.storage.getWeekHistory();
+    const activeSession = this.storage.getActiveSession();
+
+    let resumeHtml = '';
+    if (activeSession) {
+      let label = '';
+      if (
+        activeSession.state === WorkoutPhase.GET_READY ||
+        activeSession.state === WorkoutPhase.WARM_UP
+      ) {
+        label = 'RESUME · WARM UP';
+      } else if (activeSession.state === WorkoutPhase.COOLDOWN) {
+        label = `RESUME ${activeSession.stretchIndex}/11`;
+      } else {
+        label = `RESUME ${activeSession.roundIndex}/22`;
+      }
+
+      resumeHtml = `
+        <div class="card resume" role="button" aria-label="Resume workout">
+          <span>${label}</span>
+          <i>${ICON.play(COLORS.coral, 20)}</i>
+        </div>
+      `;
+    }
+
     this.root.innerHTML = `
       <div class="screen tc light" style="background:${COLORS.cream}">
         <div class="col">
@@ -265,6 +330,9 @@ export class App {
           </div>
           <div class="wm1">CARDIO</div>
           <div class="wm2">30</div>
+          <div class="streak"><b>${streak}</b><span>DAY STREAK</span></div>
+          ${renderWeek(weekDays)}
+          ${resumeHtml}
           <div style="flex:1"></div>
           <button class="start" aria-label="Start workout">
             START ${ICON.play('#fff', 36)}
@@ -275,6 +343,9 @@ export class App {
 
     this.root.querySelector('.btn-mute')?.addEventListener('click', this.handleMuteToggle);
     this.root.querySelector('.start')?.addEventListener('click', this.handleStart);
+    if (activeSession) {
+      this.root.querySelector('.card.resume')?.addEventListener('click', this.handleResume);
+    }
   }
 
   renderActiveWorkout() {
@@ -387,6 +458,10 @@ export class App {
 
   renderFinished() {
     const totalTime = formatTimeMMSS(this.engine.elapsedSessionTime || 2340);
+    const streak = this.storage.getStreak();
+    const weekDays = this.storage.getWeekHistory();
+    const streakLabel = `${streak} ${streak === 1 ? 'DAY' : 'DAYS'}`;
+
     this.root.innerHTML = `
       <div class="screen tc light" style="background:${COLORS.cream}">
         <div class="col">
@@ -395,7 +470,9 @@ export class App {
           <div class="card stats">
             <div><span>ROUNDS</span><span>22</span></div>
             <div><span>STRETCHES</span><span>11</span></div>
+            <div><span>STREAK</span><span>${streakLabel}</span></div>
           </div>
+          <div style="margin-top:1.2dvh">${renderWeek(weekDays)}</div>
           <div style="flex:1"></div>
           <button class="home" aria-label="Return home">HOME</button>
         </div>

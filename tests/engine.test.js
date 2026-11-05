@@ -488,3 +488,98 @@ describe('WorkoutEngine - Pause, Resume & Skip Controls', () => {
     expect(engine.remainingSessionTime).toBe(2160);
   });
 });
+
+describe('WorkoutEngine - Session Serialization & Restoration', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('serializes active workout state accurately', () => {
+    const engine = new WorkoutEngine();
+    engine.start();
+    vi.advanceTimersByTime(10000); // 10s GET_READY -> WARM_UP
+    vi.advanceTimersByTime(40000); // 40s into warm-up
+
+    const snapshot = engine.serializeSession();
+    expect(snapshot.state).toBe(WorkoutPhase.WARM_UP);
+    expect(snapshot.currentIntervalRemaining).toBe(80);
+    expect(snapshot.currentIntervalDuration).toBe(120);
+    expect(snapshot.sequence).toEqual(engine.sequence);
+    expect(snapshot.currentIntervalIndex).toBe(1);
+    expect(snapshot.roundIndex).toBe(0);
+  });
+
+  it('restores in-progress cardio session in paused state', () => {
+    const originalEngine = new WorkoutEngine();
+    originalEngine.start();
+    vi.advanceTimersByTime(10000); // GET_READY
+    originalEngine.skip(); // Skip WARM_UP to Round 1 WORK
+    vi.advanceTimersByTime(25000); // 25s into round 1 WORK (35s remaining)
+
+    const savedState = originalEngine.serializeSession();
+
+    // Create a new engine (simulating app reload)
+    const newEngine = new WorkoutEngine();
+    const phaseEvents = [];
+    const pauseEvents = [];
+    newEngine.on('phaseChange', (state) => phaseEvents.push(state));
+    newEngine.on('pause', () => pauseEvents.push(true));
+
+    newEngine.restoreSession(savedState);
+
+    expect(newEngine.state).toBe(WorkoutPhase.WORK);
+    expect(newEngine.roundIndex).toBe(1);
+    expect(newEngine.currentIntervalRemaining).toBe(35);
+    expect(newEngine.currentIntervalDuration).toBe(60);
+    expect(newEngine.isPaused).toBe(true);
+    expect(newEngine.sequence).toEqual(savedState.sequence);
+    expect(newEngine.currentExercise.name).toBe(savedState.sequence[0].exercise.name);
+    expect(phaseEvents).toContain(WorkoutPhase.WORK);
+    expect(pauseEvents).toHaveLength(1);
+
+    // Resuming runs 3-second lead-in then continues interval
+    newEngine.resume();
+    expect(newEngine.isPaused).toBe(false);
+    expect(newEngine.leadInSeconds).toBe(3);
+
+    vi.advanceTimersByTime(3000); // Complete 3s lead-in
+    expect(newEngine.leadInSeconds).toBe(0);
+    expect(newEngine.currentIntervalRemaining).toBe(35);
+
+    vi.advanceTimersByTime(1000); // 1s of interval
+    expect(newEngine.currentIntervalRemaining).toBe(34);
+  });
+
+  it('restores in-progress cooldown stretch accurately', () => {
+    const engine = new WorkoutEngine();
+    engine.start();
+    // Reconstruct a saved state at stretch 3/11
+    const dummySequence = engine.buildSchedule();
+    const stretch3Index = dummySequence.findIndex(
+      (inv) => inv.phase === WorkoutPhase.COOLDOWN && inv.stretchIndex === 3
+    );
+
+    const saved = {
+      sequence: engine.sequence,
+      state: WorkoutPhase.COOLDOWN,
+      currentIntervalIndex: stretch3Index,
+      currentIntervalRemaining: 20,
+      currentIntervalDuration: 40,
+      roundIndex: 0,
+      stretchIndex: 3,
+      isPaused: true,
+    };
+
+    const newEngine = new WorkoutEngine();
+    newEngine.restoreSession(saved);
+
+    expect(newEngine.state).toBe(WorkoutPhase.COOLDOWN);
+    expect(newEngine.stretchIndex).toBe(3);
+    expect(newEngine.currentIntervalRemaining).toBe(20);
+    expect(newEngine.isPaused).toBe(true);
+  });
+});
