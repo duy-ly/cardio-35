@@ -532,4 +532,58 @@ describe('App UI & Screen Flow', () => {
       expect(homeSquares[6].classList.contains('on')).toBe(true);
     });
   });
+
+  describe('Safari Install Hint Banner (Ticket 05)', () => {
+    it('shows install hint banner on Home when not in standalone mode and not dismissed', () => {
+      localStorage.clear();
+      const testStorage = new WorkoutStorage(localStorage);
+      const engine = new WorkoutEngine();
+      const app = new App({ root, engine, storage: testStorage, isStandalone: false });
+      app.init();
+
+      const banner = root.querySelector('.install-banner');
+      expect(banner).not.toBeNull();
+      expect(banner.textContent).toContain('Add to Home Screen');
+      expect(banner.textContent).toMatch(/7 days|7-day/i);
+
+      const dismissBtn = banner.querySelector('.btn-dismiss-install');
+      expect(dismissBtn).not.toBeNull();
+    });
+
+    it('dismissing the banner hides it and persists dismissal to storage', () => {
+      localStorage.clear();
+      const testStorage = new WorkoutStorage(localStorage);
+      const engine = new WorkoutEngine();
+      const app = new App({ root, engine, storage: testStorage, isStandalone: false });
+      app.init();
+
+      const dismissBtn = root.querySelector('.btn-dismiss-install');
+      expect(dismissBtn).not.toBeNull();
+      dismissBtn.click();
+
+      expect(testStorage.isInstallHintDismissed()).toBe(true);
+      expect(root.querySelector('.install-banner')).toBeNull();
+    });
+
+    it('does not show install hint banner when running in standalone mode', () => {
+      localStorage.clear();
+      const testStorage = new WorkoutStorage(localStorage);
+      const engine = new WorkoutEngine();
+      const app = new App({ root, engine, storage: testStorage, isStandalone: true });
+      app.init();
+
+      expect(root.querySelector('.install-banner')).toBeNull();
+    });
+
+    it('does not show install hint banner when already dismissed in storage', () => {
+      localStorage.clear();
+      const testStorage = new WorkoutStorage(localStorage);
+      testStorage.dismissInstallHint();
+      const engine = new WorkoutEngine();
+      const app = new App({ root, engine, storage: testStorage, isStandalone: false });
+      app.init();
+
+      expect(root.querySelector('.install-banner')).toBeNull();
+    });
+  });
 });

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#FFF6EE"/>
+  <!-- Inner circular badge / safe area -->
+  <g transform="translate(256, 256)">
+    <!-- Wordmark CARDIO -->
+    <text x="0" y="-45" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="76" letter-spacing="-2" fill="#1F2A44">CARDIO</text>
+    <!-- Wordmark 30 -->
+    <text x="0" y="150" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="220" letter-spacing="-8" fill="#F25533">30</text>
+  </g>
+</svg>

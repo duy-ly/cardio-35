@@ -8,12 +8,16 @@
   <meta name="theme-color" content="#FFF6EE">
   <meta name="description" content="Portrait-first hands-free standing cardio and cooldown web app">
   <title>Cardio 30</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg">
   <link rel="stylesheet" href="./css/app.css">
 </head>
 <body>
   <div id="app"></div>
   <div class="landscape-warning" aria-hidden="true">
-    <p>Please rotate your device to portrait mode.</p>
+    <div class="landscape-title">Rotate to portrait</div>
+    <p>Please rotate your device to portrait mode to continue.</p>
   </div>
   <script type="module" src="./src/main.js"></script>
 </body>

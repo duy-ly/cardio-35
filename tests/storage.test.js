@@ -230,4 +230,16 @@ describe('WorkoutStorage', () => {
       expect(mockStorage.removeItem).toHaveBeenCalledWith('cardio30_active_session');
     });
   });
+
+  describe('install hint banner dismissal', () => {
+    it('returns false by default when install hint has not been dismissed', () => {
+      expect(store.isInstallHintDismissed()).toBe(false);
+    });
+
+    it('persists dismissal and returns true after dismissInstallHint is called', () => {
+      store.dismissInstallHint();
+      expect(mockStorage.setItem).toHaveBeenCalledWith('cardio30_install_hint_dismissed', 'true');
+      expect(store.isInstallHintDismissed()).toBe(true);
+    });
+  });
 });

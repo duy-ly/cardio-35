@@ -8,6 +8,7 @@ export class App {
     this.root = options.root;
     this.engine = options.engine;
     this.wakeLock = options.wakeLock;
+    this.isStandaloneOption = options.isStandalone;
     this.soundController =
       options.soundController ||
       new SoundController({ isMuted: options.isMuted });
@@ -125,6 +126,22 @@ export class App {
       this.activeCue = null;
       this.renderCueElement();
     }, 4000);
+  }
+
+  isStandalone() {
+    if (typeof this.isStandaloneOption === 'boolean') {
+      return this.isStandaloneOption;
+    }
+    if (typeof window !== 'undefined') {
+      if (window.navigator && window.navigator.standalone === true) return true;
+      if (
+        window.matchMedia &&
+        window.matchMedia('(display-mode: standalone)').matches
+      ) {
+        return true;
+      }
+    }
+    return false;
   }
 
   showWakeLockNotice(show) {
@@ -296,6 +313,8 @@ export class App {
     const streak = this.storage.getStreak();
     const weekDays = this.storage.getWeekHistory();
     const activeSession = this.storage.getActiveSession();
+    const showInstallBanner =
+      !this.isStandalone() && !this.storage.isInstallHintDismissed();
 
     let resumeHtml = '';
     if (activeSession) {
@@ -319,6 +338,19 @@ export class App {
       `;
     }
 
+    let installBannerHtml = '';
+    if (showInstallBanner) {
+      installBannerHtml = `
+        <div class="card install-banner" role="region" aria-label="Install App Instructions">
+          <div class="banner-body">
+            <div class="banner-title">Tap <b>Share</b> then <b>Add to Home Screen</b></div>
+            <div class="banner-text">Safari clears data if unused for 7 days. Installing preserves your streak and history.</div>
+          </div>
+          <button class="btn-dismiss-install" aria-label="Dismiss banner">✕</button>
+        </div>
+      `;
+    }
+
     this.root.innerHTML = `
       <div class="screen tc light" style="background:${COLORS.cream}">
         <div class="col">
@@ -333,6 +365,7 @@ export class App {
           <div class="streak"><b>${streak}</b><span>DAY STREAK</span></div>
           ${renderWeek(weekDays)}
           ${resumeHtml}
+          ${installBannerHtml}
           <div style="flex:1"></div>
           <button class="start" aria-label="Start workout">
             START ${ICON.play('#fff', 36)}
@@ -345,6 +378,12 @@ export class App {
     this.root.querySelector('.start')?.addEventListener('click', this.handleStart);
     if (activeSession) {
       this.root.querySelector('.card.resume')?.addEventListener('click', this.handleResume);
+    }
+    if (showInstallBanner) {
+      this.root.querySelector('.btn-dismiss-install')?.addEventListener('click', () => {
+        this.storage.dismissInstallHint();
+        this.renderHome();
+      });
     }
   }
 

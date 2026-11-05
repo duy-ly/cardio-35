@@ -350,6 +350,60 @@ html, body {
   height: 50%;
 }
 
+/* Install banner (Safari Add to Home Screen hint) */
+.tc .install-banner {
+  margin-top: 1.4dvh;
+  padding: 1dvh 1.4dvh;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fff;
+  border-left: 4px solid var(--coral);
+}
+
+.tc .install-banner .banner-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3dvh;
+}
+
+.tc .install-banner .banner-title {
+  font-size: clamp(12px, 1.6dvh, 18px);
+  font-weight: 800;
+  color: var(--navy);
+  line-height: 1.2;
+}
+
+.tc .install-banner .banner-title b {
+  color: var(--coral);
+}
+
+.tc .install-banner .banner-text {
+  font-size: clamp(10px, 1.3dvh, 14px);
+  color: #7A8199;
+  line-height: 1.25;
+}
+
+.tc .install-banner .btn-dismiss-install {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--navy);
+  font-size: 18px;
+  font-weight: 900;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  touch-action: manipulation;
+  flex-shrink: 0;
+}
+
 /* Full-width START block */
 .tc .start {
   flex: 0 0 auto;
@@ -434,10 +488,23 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 16px;
   padding: 24px;
   text-align: center;
+}
+
+.landscape-warning .landscape-title {
+  font-size: clamp(28px, 6vh, 48px);
   font-weight: 900;
-  font-size: 24px;
+  letter-spacing: -0.03em;
+  color: #fff;
+}
+
+.landscape-warning p {
+  font-size: clamp(14px, 3vh, 20px);
+  font-weight: 500;
+  opacity: 0.8;
+  max-width: 400px;
 }
 
 @media (orientation: landscape) {

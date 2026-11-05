@@ -1,6 +1,7 @@
 export const STORAGE_KEYS = {
   HISTORY: 'cardio30_history',
   ACTIVE_SESSION: 'cardio30_active_session',
+  INSTALL_HINT_DISMISSED: 'cardio30_install_hint_dismissed',
 };
 
 export const MAX_ACTIVE_SESSION_AGE_MS = 2 * 60 * 60 * 1000; // 2 hours
@@ -146,6 +147,22 @@ export class WorkoutStorage {
     if (!this.storage) return;
     try {
       this.storage.removeItem(STORAGE_KEYS.ACTIVE_SESSION);
+    } catch {}
+  }
+
+  isInstallHintDismissed() {
+    if (!this.storage) return false;
+    try {
+      return this.storage.getItem(STORAGE_KEYS.INSTALL_HINT_DISMISSED) === 'true';
+    } catch {
+      return false;
+    }
+  }
+
+  dismissInstallHint() {
+    if (!this.storage) return;
+    try {
+      this.storage.setItem(STORAGE_KEYS.INSTALL_HINT_DISMISSED, 'true');
     } catch {}
   }
 }
