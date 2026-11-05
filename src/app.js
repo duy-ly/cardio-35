@@ -212,6 +212,33 @@ export class App {
       const pct = Math.min(100, Math.max(0, (elapsed / intervalDuration) * 100));
       bandEl.style.height = `${pct}%`;
     }
+
+    if (this.engine.state === WorkoutPhase.COOLDOWN) {
+      const isSide2 = this.engine.stretchSide === 2;
+      const figEl = this.root.querySelector('.stage .fig');
+      if (figEl) {
+        if (isSide2 && !figEl.classList.contains('mirror')) {
+          figEl.classList.add('mirror');
+        } else if (!isSide2 && figEl.classList.contains('mirror')) {
+          figEl.classList.remove('mirror');
+        }
+      }
+      let sideLabelEl = this.root.querySelector('.side-label');
+      if (isSide2) {
+        if (!sideLabelEl) {
+          const nameEl = this.root.querySelector('.exercise-name');
+          if (nameEl) {
+            sideLabelEl = document.createElement('div');
+            sideLabelEl.className = 'lbl side-label';
+            sideLabelEl.style.marginTop = '.8cqh';
+            sideLabelEl.textContent = 'SIDE 2 OF 2';
+            nameEl.after(sideLabelEl);
+          }
+        }
+      } else if (sideLabelEl) {
+        sideLabelEl.remove();
+      }
+    }
   }
 
   render() {
@@ -318,7 +345,7 @@ export class App {
         <div class="count cool tab">${remaining}</div>
         <div class="stage">${getFigureSvg('#fff', mode, mirrorClass)}</div>
         <div class="name exercise-name">${stretchName}</div>
-        ${isSide2 ? '<div class="lbl" style="margin-top:.8cqh">SIDE 2 OF 2</div>' : ''}
+        ${isSide2 ? '<div class="lbl side-label" style="margin-top:.8cqh">SIDE 2 OF 2</div>' : ''}
       `;
     }
 
